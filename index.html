@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>자산 관리 - 부동산 & 자산</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -303,14 +304,14 @@
     <div class="login-title">자산관리</div>
     <div class="login-sub">로그인 후 이용하실 수 있습니다</div>
     <div class="login-group">
-      <label class="login-label">아이디</label>
-      <input type="text" class="login-input" id="login-id" placeholder="아이디 입력" onkeydown="if(event.key==='Enter') doLogin()">
+      <label class="login-label">이메일</label>
+      <input type="email" class="login-input" id="login-email" placeholder="이메일 입력" onkeydown="if(event.key==='Enter') doLogin()">
     </div>
     <div class="login-group">
       <label class="login-label">비밀번호</label>
       <input type="password" class="login-input" id="login-pw" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter') doLogin()">
     </div>
-    <button class="login-btn" onclick="doLogin()">로그인</button>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">로그인</button>
     <div class="login-error" id="login-error"></div>
   </div>
 </div>
@@ -361,6 +362,7 @@
     <button id="sync-toggle-btn" onclick="toggleCloudSync()" style="background:var(--gray-100);border:none;border-radius:7px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--gray-600);cursor:pointer;white-space:nowrap"></button>
     <button onclick="copySyncCode()" title="이 기기의 동기화 코드 복사" style="background:var(--gray-100);border:none;border-radius:7px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--gray-600);cursor:pointer;white-space:nowrap">내 코드</button>
     <button onclick="enterSyncCode()" title="다른 기기 코드로 연결" style="background:var(--blue-light);border:none;border-radius:7px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--blue);cursor:pointer;white-space:nowrap">연결</button>
+    <button onclick="doLogout()" style="background:var(--red-light);border:none;border-radius:7px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--red);cursor:pointer;white-space:nowrap">로그아웃</button>
   </div>
 </nav>
 
@@ -824,10 +826,11 @@
 </div>
 
 <script>
-// ─── SUPABASE SYNC ──────────────────────────────────────────────
+// ─── SUPABASE 초기화 ────────────────────────────────────────────
 const SUPABASE_URL = 'https://nlxowmscueqcldfmtgul.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_eS-2n1o0IiZBLWtlPxH8Pg__iIYVQn9';
 const SYNC_TABLE = 'asset_mgr_data';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // 기기 식별용 사용자 ID (없으면 생성해서 localStorage에 보관)
 function getDeviceUserId(){
@@ -2092,26 +2095,38 @@ function renderDashboard(){
 
 function renderAll(){ renderDashboard(); renderProperties(); renderAssets(); renderNotes(); }
 
-// ─── LOGIN ─────────────────────────────────────────────────────
-const LOGIN_ID = 'jjs3050';
-const LOGIN_PW = '1506!!';
-
-function doLogin(){
-  const id = document.getElementById('login-id').value.trim();
+// ─── LOGIN (Supabase Auth) ──────────────────────────────────────
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
   const pw = document.getElementById('login-pw').value;
-  if(id === LOGIN_ID && pw === LOGIN_PW){
-    sessionStorage.setItem('asset_mgr_auth', 'true');
-    document.getElementById('login-screen').classList.add('hidden');
-    document.getElementById('login-error').textContent = '';
-  } else {
-    document.getElementById('login-error').textContent = '아이디 또는 비밀번호가 올바르지 않습니다.';
+  const btn = document.getElementById('login-btn');
+  const errEl = document.getElementById('login-error');
+  if(!email || !pw){ errEl.textContent = '이메일과 비밀번호를 입력해주세요.'; return; }
+  btn.textContent = '로그인 중...';
+  btn.disabled = true;
+  errEl.textContent = '';
+  const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
+  if(error){
+    errEl.textContent = '이메일 또는 비밀번호가 올바르지 않습니다.';
     document.getElementById('login-pw').value = '';
     document.getElementById('login-pw').focus();
+  } else {
+    document.getElementById('login-screen').classList.add('hidden');
   }
+  btn.textContent = '로그인';
+  btn.disabled = false;
 }
 
-function checkAuth(){
-  if(sessionStorage.getItem('asset_mgr_auth') !== 'true'){
+async function doLogout(){
+  await supabase.auth.signOut();
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-email').value = '';
+  document.getElementById('login-pw').value = '';
+}
+
+async function checkAuth(){
+  const { data: { session } } = await supabase.auth.getSession();
+  if(!session){
     document.getElementById('login-screen').classList.remove('hidden');
   } else {
     document.getElementById('login-screen').classList.add('hidden');
@@ -2142,8 +2157,7 @@ if(data.properties.length===0&&data.assets.length===0){
   ];
   save();
 }
-checkAuth();
-renderAll();
+checkAuth().then(() => renderAll());
 
 // 즐겨찾기 URL(#코드)로 들어온 경우: 자동으로 동기화 켜고 클라우드 데이터 복원
 if(hasSyncCodeInUrl()){
