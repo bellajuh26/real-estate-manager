@@ -837,13 +837,13 @@ function getDeviceUserId(){
   // URL 해시(#코드)에 코드가 있으면 그것을 최우선으로 사용
   const hashCode = (location.hash || '').replace('#','').trim();
   if(hashCode && hashCode.startsWith('user_')){
-    localStorage.setItem('asset_mgr_user_id', hashCode);
+    _storageSet('asset_mgr_user_id', hashCode);
     return hashCode;
   }
-  let id = localStorage.getItem('asset_mgr_user_id');
+  let id = _storageGet('asset_mgr_user_id');
   if(!id){
     id = 'user_' + Date.now().toString(36) + Math.random().toString(36).slice(2,10);
-    localStorage.setItem('asset_mgr_user_id', id);
+    _storageSet('asset_mgr_user_id', id);
   }
   return id;
 }
@@ -892,11 +892,11 @@ async function cloudSave(userId, payload){
 
 // ─── SYNC ON/OFF TOGGLE ─────────────────────────────────────────
 function isCloudSyncEnabled(){
-  return localStorage.getItem('asset_mgr_sync_enabled') === 'true'; // 기본값: 꺼짐
+  return _storageGet('asset_mgr_sync_enabled') === 'true'; // 기본값: 꺼짐
 }
 function toggleCloudSync(){
   const enabled = isCloudSyncEnabled();
-  localStorage.setItem('asset_mgr_sync_enabled', enabled ? 'false' : 'true');
+  _storageSet('asset_mgr_sync_enabled', enabled ? 'false' : 'true');
   updateSyncToggleBtn();
   if(!enabled){
     // 다시 켜는 경우: URL에 코드 반영 + 클라우드에서 최신 데이터 받아오기
@@ -945,14 +945,18 @@ function setSyncStatus(status, msg){
 // ─── DATA ─────────────────────────────────────────────────────
 let data = { properties:[], assets:[], notes:[], target:{budget:'',criteria:{subway:false,infra:false,school:false,brand:false,newbuild:false,large:false}} };
 
+// localStorage 사용 불가 환경(미리보기 등) 대비 메모리 폴백
+const _memStore = {};
+function _storageSet(key, val){ try{ localStorage.setItem(key, val); }catch(e){ _memStore[key]=val; } }
+function _storageGet(key){ try{ return localStorage.getItem(key); }catch(e){ return _memStore[key]||null; } }
+
 function save(){
-  localStorage.setItem('asset_mgr_v3',JSON.stringify(data));
+  _storageSet('asset_mgr_v3', JSON.stringify(data));
   scheduleCloudSync();
 }
 function load(){
-  const raw=localStorage.getItem('asset_mgr_v3');
+  const raw=_storageGet('asset_mgr_v3');
   if(raw){ try{ data=JSON.parse(raw); if(!data.target) data.target={budget:'',criteria:{}}; }catch(e){} }
-  // 기존 데이터 마이그레이션: createdAt/updatedAt 없으면 채우기
   data.properties.forEach((p,i)=>{
     if(!p.createdAt) p.createdAt = new Date(Date.now() - (data.properties.length-i)*1000).toISOString();
     if(!p.updatedAt) p.updatedAt = p.createdAt;
@@ -973,7 +977,7 @@ async function loadFromCloud(){
         if(!p.createdAt) p.createdAt = new Date(Date.now() - (data.properties.length-i)*1000).toISOString();
         if(!p.updatedAt) p.updatedAt = p.createdAt;
       });
-      localStorage.setItem('asset_mgr_v3', JSON.stringify(data));
+      _storageSet('asset_mgr_v3', JSON.stringify(data));
       setSyncStatus('saved');
       renderAll();
     } else {
@@ -990,7 +994,7 @@ async function loadFromCloud(){
 function copySyncCode(){
   const id = getDeviceUserId();
   // 동기화를 켜두지 않으면 즐겨찾기로 돌아와도 의미 없으므로 함께 켠다
-  localStorage.setItem('asset_mgr_sync_enabled', 'true');
+  _storageSet('asset_mgr_sync_enabled', 'true');
   updateSyncToggleBtn();
   scheduleCloudSync();
 
@@ -1008,8 +1012,8 @@ function enterSyncCode(){
   // URL 전체를 붙여넣은 경우 코드만 추출
   let clean = code.trim();
   if(clean.includes('#')) clean = clean.split('#')[1] || clean;
-  localStorage.setItem('asset_mgr_user_id', clean);
-  localStorage.setItem('asset_mgr_sync_enabled', 'true');
+  _storageSet('asset_mgr_user_id', clean);
+  _storageSet('asset_mgr_sync_enabled', 'true');
   history.replaceState(null, '', location.pathname + '#' + clean);
   updateSyncToggleBtn();
   loadFromCloud();
@@ -1767,9 +1771,9 @@ const LOAN_PRODUCTS = {
 
 let currentLoanProduct = 'custom';
 let selectedYear = 10;
-let loanPlans = JSON.parse(localStorage.getItem('loan_plans_v1') || '[]');
+let loanPlans = JSON.parse(_storageGet('loan_plans_v1') || '[]');
 
-function saveLoanPlans(){ localStorage.setItem('loan_plans_v1', JSON.stringify(loanPlans)); }
+function saveLoanPlans(){ _storageSet('loan_plans_v1', JSON.stringify(loanPlans)); }
 
 function selectLoanProduct(key){
   currentLoanProduct = key;
@@ -1984,8 +1988,8 @@ function renderAssets(){
 }
 
 // ─── LOAN MEMO LIST ────────────────────────────────────────────
-let loanMemos = JSON.parse(localStorage.getItem('loan_memos_v1')||'[]');
-function saveLoanMemosStore(){ localStorage.setItem('loan_memos_v1', JSON.stringify(loanMemos)); }
+let loanMemos = JSON.parse(_storageGet('loan_memos_v1')||'[]');
+function saveLoanMemosStore(){ _storageSet('loan_memos_v1', JSON.stringify(loanMemos)); }
 
 function openLoanMemoModal(id){
   document.getElementById('lm-edit-id').value = id||'';
@@ -2163,7 +2167,7 @@ checkAuth().then(() => renderAll());
 
 // 즐겨찾기 URL(#코드)로 들어온 경우: 자동으로 동기화 켜고 클라우드 데이터 복원
 if(hasSyncCodeInUrl()){
-  localStorage.setItem('asset_mgr_sync_enabled', 'true');
+  _storageSet('asset_mgr_sync_enabled', 'true');
 }
 updateSyncToggleBtn();
 if(isCloudSyncEnabled()){
