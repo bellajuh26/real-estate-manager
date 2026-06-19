@@ -6,6 +6,21 @@
 <title>자산 관리 - 부동산 & 자산</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  /* LOGIN */
+  .login-screen { position:fixed; inset:0; background:linear-gradient(135deg,#1B64DA 0%,#3182F6 50%,#00B493 100%); z-index:9999; display:flex; align-items:center; justify-content:center; }
+  .login-screen.hidden { display:none; }
+  .login-box { background:white; border-radius:24px; padding:40px 36px; width:100%; max-width:380px; box-shadow:0 20px 60px rgba(0,0,0,0.2); }
+  .login-logo { font-size:32px; text-align:center; margin-bottom:8px; }
+  .login-title { font-size:22px; font-weight:800; color:var(--gray-900); text-align:center; margin-bottom:4px; }
+  .login-sub { font-size:13px; color:var(--gray-500); text-align:center; margin-bottom:28px; }
+  .login-group { margin-bottom:14px; }
+  .login-label { display:block; font-size:12px; font-weight:700; color:var(--gray-600); margin-bottom:6px; }
+  .login-input { width:100%; padding:13px 16px; border:1.5px solid var(--gray-200); border-radius:10px; font-size:15px; color:var(--gray-900); outline:none; transition:border-color 0.15s; font-family:inherit; }
+  .login-input:focus { border-color:var(--blue); }
+  .login-btn { width:100%; padding:14px; background:var(--blue); color:white; border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; margin-top:8px; transition:background 0.15s; }
+  .login-btn:hover { background:var(--blue-dark); }
+  .login-error { color:var(--red); font-size:13px; text-align:center; margin-top:10px; min-height:18px; }
   :root {
     --blue: #3182F6; --blue-light: #EBF3FE; --blue-dark: #1B64DA;
     --green: #00B493; --green-light: #E6FAF6;
@@ -280,6 +295,25 @@
 </style>
 </head>
 <body>
+
+<!-- LOGIN SCREEN -->
+<div class="login-screen" id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">💰</div>
+    <div class="login-title">자산관리</div>
+    <div class="login-sub">로그인 후 이용하실 수 있습니다</div>
+    <div class="login-group">
+      <label class="login-label">아이디</label>
+      <input type="text" class="login-input" id="login-id" placeholder="아이디 입력" onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <div class="login-group">
+      <label class="login-label">비밀번호</label>
+      <input type="password" class="login-input" id="login-pw" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter') doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">로그인</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
 
 <!-- MODAL: 대출 메모 추가 -->
 <div class="modal-overlay" id="loan-memo-modal">
@@ -2058,6 +2092,32 @@ function renderDashboard(){
 
 function renderAll(){ renderDashboard(); renderProperties(); renderAssets(); renderNotes(); }
 
+// ─── LOGIN ─────────────────────────────────────────────────────
+const LOGIN_ID = 'admin';
+const LOGIN_PW = '1234';
+
+function doLogin(){
+  const id = document.getElementById('login-id').value.trim();
+  const pw = document.getElementById('login-pw').value;
+  if(id === LOGIN_ID && pw === LOGIN_PW){
+    sessionStorage.setItem('asset_mgr_auth', 'true');
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('login-error').textContent = '';
+  } else {
+    document.getElementById('login-error').textContent = '아이디 또는 비밀번호가 올바르지 않습니다.';
+    document.getElementById('login-pw').value = '';
+    document.getElementById('login-pw').focus();
+  }
+}
+
+function checkAuth(){
+  if(sessionStorage.getItem('asset_mgr_auth') !== 'true'){
+    document.getElementById('login-screen').classList.remove('hidden');
+  } else {
+    document.getElementById('login-screen').classList.add('hidden');
+  }
+}
+
 // ─── INIT ──────────────────────────────────────────────────────
 load();
 if(data.properties.length===0&&data.assets.length===0){
@@ -2082,6 +2142,7 @@ if(data.properties.length===0&&data.assets.length===0){
   ];
   save();
 }
+checkAuth();
 renderAll();
 
 // 즐겨찾기 URL(#코드)로 들어온 경우: 자동으로 동기화 켜고 클라우드 데이터 복원
