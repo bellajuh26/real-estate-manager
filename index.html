@@ -848,6 +848,7 @@ const SUPABASE_URL = 'https://nlxowmscueqcldfmtgul.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_eS-2n1o0IiZBLWtlPxH8Pg__iIYVQn9';
 const SYNC_TABLE = 'asset_mgr_data';
 const sbClient = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+let _authUserId = null; // checkAuth에서 설정되는 Auth user ID
 
 // 기기 식별용 사용자 ID (없으면 생성해서 localStorage에 보관)
 function getDeviceUserId(){
@@ -940,7 +941,7 @@ function scheduleCloudSync(){
   setSyncStatus('saving');
   _cloudSyncTimer = setTimeout(async()=>{
     try{
-      await cloudSave(getDeviceUserId(), data);
+      await cloudSave(_authUserId || getDeviceUserId(), data);
       setSyncStatus('saved');
     }catch(e){
       console.error('클라우드 저장 오류:', e);
@@ -2164,6 +2165,7 @@ async function checkAuth(){
   } else {
     document.getElementById('login-screen').classList.add('hidden');
     const authId = session.user.id;
+    _authUserId = authId;
     // Auth user ID로 클라우드 데이터 시도
     let cloudData = await cloudLoad(authId);
     if(!cloudData){
