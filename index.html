@@ -787,7 +787,24 @@
     </div>
     <div class="form-group">
       <label class="form-label">메모</label>
-      <textarea class="form-textarea" id="p-memo" placeholder="특이사항, 장단점, 주의사항 등을 자유롭게 기록하세요."></textarea>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:15px;width:24px">👍</span>
+          <input type="text" class="form-input" id="p-memo-good" placeholder="장점">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:15px;width:24px">👎</span>
+          <input type="text" class="form-input" id="p-memo-bad" placeholder="단점">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:15px;width:24px">🚨</span>
+          <input type="text" class="form-input" id="p-memo-warn" placeholder="주의사항">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:15px;width:24px">🎸</span>
+          <input type="text" class="form-input" id="p-memo-etc" placeholder="기타">
+        </div>
+      </div>
     </div>
     <div class="form-actions">
       <button class="btn-primary" onclick="saveProperty()">저장하기</button>
@@ -1542,7 +1559,12 @@ function saveProperty(){
     curPrice:'',
     status:document.getElementById('p-status').value,
     rent:'',
-    memo:document.getElementById('p-memo').value,
+    memo:[
+      document.getElementById('p-memo-good').value ? '👍장점: '+document.getElementById('p-memo-good').value : '',
+      document.getElementById('p-memo-bad').value ? '👎단점: '+document.getElementById('p-memo-bad').value : '',
+      document.getElementById('p-memo-warn').value ? '🚨주의사항: '+document.getElementById('p-memo-warn').value : '',
+      document.getElementById('p-memo-etc').value ? '🎸기타: '+document.getElementById('p-memo-etc').value : ''
+    ].filter(Boolean).join('\n'),
     criteria:{
       subway:document.getElementById('p-subway').checked,
       infra:document.getElementById('p-infra').checked,
@@ -1561,7 +1583,7 @@ function saveProperty(){
 }
 
 function clearPropForm(){
-  ['p-name','p-region','p-location','p-year','p-units','p-far','p-area','p-rooms','p-dong','p-hosu','p-floor','p-buy-price','p-memo','prop-edit-id']
+  ['p-name','p-region','p-location','p-year','p-units','p-far','p-area','p-rooms','p-dong','p-hosu','p-floor','p-buy-price','p-memo-good','p-memo-bad','p-memo-warn','p-memo-etc','prop-edit-id']
     .forEach(i=>{ document.getElementById(i).value=''; });
   document.getElementById('p-area-pyeong').textContent='';
   document.getElementById('p-price-preview').textContent='';
@@ -1596,7 +1618,12 @@ function editProperty(id){
   previewPrice();
   document.getElementById('p-status').value=p.status;
   setHeart(p.status==='관심');
-  document.getElementById('p-memo').value=p.memo||'';
+  const memoLines = (p.memo||'').split('\n');
+  const findMemo = (prefix) => { const l = memoLines.find(x=>x.startsWith(prefix)); return l ? l.slice(prefix.length) : ''; };
+  document.getElementById('p-memo-good').value = findMemo('👍장점: ');
+  document.getElementById('p-memo-bad').value = findMemo('👎단점: ');
+  document.getElementById('p-memo-warn').value = findMemo('🚨주의사항: ');
+  document.getElementById('p-memo-etc').value = findMemo('🎸기타: ');
   updatePyeong();
   const cr=p.criteria||{};
   document.getElementById('p-subway').checked=!!cr.subway;
@@ -2136,6 +2163,20 @@ async function checkAuth(){
     document.getElementById('login-screen').classList.remove('hidden');
   } else {
     document.getElementById('login-screen').classList.add('hidden');
+    const authId = session.user.id;
+    // Auth user ID로 클라우드 데이터 시도
+    let cloudData = await cloudLoad(authId);
+    if(!cloudData){
+      // 기존 랜덤 user_id로 데이터 있으면 Auth ID로 이전
+      const oldId = _storageGet('asset_mgr_user_id');
+      if(oldId && oldId !== authId){
+        const oldData = await cloudLoad(oldId);
+        if(oldData){ cloudData = oldData; await cloudSave(authId, oldData); }
+      }
+    }
+    _storageSet('asset_mgr_user_id', authId);
+    if(cloudData){ data = cloudData; save(); }
+    _storageSet('asset_mgr_sync_enabled', 'true');
   }
 }
 
