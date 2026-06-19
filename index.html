@@ -830,7 +830,7 @@
 const SUPABASE_URL = 'https://nlxowmscueqcldfmtgul.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_eS-2n1o0IiZBLWtlPxH8Pg__iIYVQn9';
 const SYNC_TABLE = 'asset_mgr_data';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // 기기 식별용 사용자 ID (없으면 생성해서 localStorage에 보관)
 function getDeviceUserId(){
@@ -2105,9 +2105,9 @@ async function doLogin(){
   btn.textContent = '로그인 중...';
   btn.disabled = true;
   errEl.textContent = '';
-  const { error } = await supabase.auth.signInWithPassword({ email, password: pw });
+  const { error } = await sbClient.auth.signInWithPassword({ email, password: pw });
   if(error){
-    errEl.textContent = '이메일 또는 비밀번호가 올바르지 않습니다.';
+    errEl.textContent = '이메일 또는 비밀번호가 올바르지 않습니다. ('+error.message+')';
     document.getElementById('login-pw').value = '';
     document.getElementById('login-pw').focus();
   } else {
@@ -2118,14 +2118,14 @@ async function doLogin(){
 }
 
 async function doLogout(){
-  await supabase.auth.signOut();
+  await sbClient.auth.signOut();
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('login-email').value = '';
   document.getElementById('login-pw').value = '';
 }
 
 async function checkAuth(){
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await sbClient.auth.getSession();
   if(!session){
     document.getElementById('login-screen').classList.remove('hidden');
   } else {
