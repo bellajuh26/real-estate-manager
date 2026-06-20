@@ -1683,7 +1683,7 @@ function renderDashPropTable(){
       <td style="color:var(--gray-700);white-space:nowrap">${far}</td>
       <td class="pt-area">${area}</td>
       <td style="color:var(--gray-700)">${p.rooms||'-'}</td>
-      <td><div class="pt-price">${fmt(p.buyPrice)}</div></td>
+      <td><div class="pt-price">${fmt(p.buyPrice)}</div>${p.buyPrice?`<div style="font-size:10px;color:var(--gray-500);margin-top:2px">부대비용 포함 약 <span style="color:var(--red);font-weight:700">${fmt(Math.round(Number(p.buyPrice)*1.04))}</span></div>`:''}</td>
       <td class="pt-heart"><button onclick="toggleTableHeart('${p.id}')" style="background:none;border:none;cursor:pointer;padding:2px;line-height:0;border-radius:50%;transition:transform 0.15s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">${heartSvg}</button></td>
       <td><div class="pt-memo" title="${memo}">${memo||'-'}</div></td>
     </tr>`;
@@ -1772,8 +1772,9 @@ const LOAN_PRODUCTS = {
       • 대출한도: 최대 3.6억원 (주택가격 6억원 이하)<br>
       • 적용금리: 연 <strong>3.65% ~ 4.25%</strong> (소득·만기에 따라 차등)<br>
       • 우대금리: 청년·신혼·다자녀 가구 최대 0.8%p 추가 감면<br>
-      • 상환기간: 10·15·20·30년 (원리금균등 / 원금균등)<br>
-      <span style="color:#1B64DA;font-weight:700">🏠 당사자(본인)가 무주택인 경우 가능 (배우자 포함 세대 기준, 1주택자 대환 목적은 일부 허용)</span>`
+      • 상환기간: 10·15·20·30·<strong>40년</strong> (원리금균등 / 원금균등)<br>
+      <span style="color:#1B64DA;font-weight:700">🏠 당사자(본인)가 무주택인 경우 가능 (배우자 포함 세대 기준, 1주택자 대환 목적은 일부 허용)</span><br>
+      <span style="color:#3182F6;font-weight:600">📅 최대 40년까지 대출기간 선택 가능</span>`
   },
   didimdul: {
     name: '디딤돌대출', color: '#00B493', cls: 'lpb-green',
@@ -1783,7 +1784,8 @@ const LOAN_PRODUCTS = {
       • 적용금리: 연 <strong>2.35% ~ 3.95%</strong> (소득·만기·주택에 따라 차등)<br>
       • 우대금리: 신혼·다자녀·에너지효율 주택 등 최대 0.7%p 추가 감면<br>
       • 소득요건: 부부합산 연소득 6천만원 이하 (생애최초 7천만원 이하)<br>
-      <span style="color:#D97706;font-weight:700">🚨 무주택 세대주인 경우에만 가능 — 부모님이 자가를 소유하고 함께 거주 중이라면 불가. 세대분리가 필요합니다.</span>`
+      <span style="color:#D97706;font-weight:700">🚨 무주택 세대주인 경우에만 가능 — 부모님이 자가를 소유하고 함께 거주 중이라면 불가. 세대분리가 필요합니다.</span><br>
+      <span style="color:#00B493;font-weight:600">✅ 단, 부모님이 만 65세 이상인 경우 무주택 검증에서 제외됩니다.</span>`
   },
   judam: {
     name: '주택담보대출', color: '#EA6C00', cls: 'lpb-orange',
