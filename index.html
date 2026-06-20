@@ -1752,6 +1752,7 @@ function renderProperties(){
       <div class="prop-price-row">
         <div>
           <div class="prop-price">${fmt(p.buyPrice)}</div>
+          ${p.buyPrice?`<div style="font-size:11px;color:var(--gray-500);margin-top:2px">부대비용 포함 약 <span style="color:var(--red);font-weight:700">${fmt(Math.round(Number(p.buyPrice)*1.04))}</span></div>`:''}
         </div>
         <div style="text-align:right">
           <div>${yieldHtml}</div>${rentHtml}
