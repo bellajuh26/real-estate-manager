@@ -2184,7 +2184,8 @@ async function checkAuth(){
 
 // ─── INIT ──────────────────────────────────────────────────────
 load();
-if(data.properties.length===0&&data.assets.length===0){
+// Supabase 연결 없을 때만 샘플 데이터 채움 (로그인 환경에서는 클라우드 데이터 우선)
+if(!sbClient && data.properties.length===0&&data.assets.length===0){
   data.target={budget:'120000',criteria:{subway:true,school:true,brand:true,infra:false,newbuild:false,large:false}};
   const _now = new Date();
   const _ts = (offsetSec=0) => new Date(_now - offsetSec*1000).toISOString();
