@@ -627,7 +627,7 @@
     <div class="form-row">
       <div class="form-group">
         <label class="form-label">아파트명 *</label>
-        <input type="text" class="form-input" id="p-name" placeholder="예: 래미안 강남포레">
+        <input type="text" class="form-input" id="p-name" placeholder="예: 래미안 강남포레" oninput="autoBrandDetect(this.value)">
       </div>
       <div class="form-group">
         <label class="form-label">유형</label>
@@ -1445,32 +1445,73 @@ function renderTargetBanner(){
   td.innerHTML=`<div class="tc-tags">${tags.map(tg=>`<span class="tc-tag${c[tg.k]?' on':''}">${tg.l}</span>`).join('')}</div>`;
 }
 
+// ─── 브랜드 자동 인식 ───────────────────────────────────────────
+const BRAND_KEYWORDS = ['래미안','레이카운티','힐스테이트','자이','푸르지오','아이파크','롯데캐슬','더샵','sk뷰','e편한세상','위브','포레나','호반베르디움','리센츠','올림픽파크포레온','디에이치','반포자이','한화포레나','중흥s클래스','제일풍경채','우미린'];
+function autoBrandDetect(name){
+  const lower = name.toLowerCase();
+  const isBrand = BRAND_KEYWORDS.some(k => lower.includes(k.toLowerCase()));
+  const brandChk = document.getElementById('p-brand');
+  if(brandChk && isBrand) brandChk.checked = true;
+  // 세대수 기반 대단지 힌트 (units 필드 기준으로는 저장시 판단)
+}
+
 // ─── SCORING ───────────────────────────────────────────────────
 function scoreProperty(p){
   const c=data.target.criteria||{};
   const budget=Number(data.target.budget)||Infinity;
   const price=Number(p.curPrice||p.buyPrice||0);
+  const pc=p.criteria||{};
   let score=0;
-  // 예산 범위 (예산 내이면 +20, 초과율 낮을수록 점수)
+
+  // ① 예산 적합도 (최대 20점)
   if(budget<Infinity){
     if(price<=budget) score+=20;
-    else if(price<=budget*1.1) score+=10;
-    else if(price<=budget*1.2) score+=5;
+    else if(price<=budget*1.05) score+=14;
+    else if(price<=budget*1.1) score+=8;
+    else if(price<=budget*1.2) score+=3;
   } else { score+=10; }
-  // 각 항목별 — 목표에서 중요하게 체크된 것과 매물에서 체크된 것 교차
-  const keys=['subway','infra','school','brand','newbuild','large'];
-  const propCriteria=p.criteria||{};
-  keys.forEach(k=>{
-    const weight=c[k]?15:5; // 목표에서 중요 표시한 항목이면 가중치 3배
-    if(propCriteria[k]) score+=weight;
-  });
-  // 관심 매물 보너스
+
+  // ② 역세권 (목표 중요항목이면 18점, 아니면 8점)
+  if(pc.subway) score += c.subway ? 18 : 8;
+
+  // ③ 인프라 (대형마트·병원·편의시설)
+  if(pc.infra) score += c.infra ? 15 : 6;
+
+  // ④ 학군 (초·중 배정 우수 지역)
+  if(pc.school) score += c.school ? 15 : 6;
+
+  // ⑤ 브랜드 — 이름에서 자동 보정
+  const nameLower=(p.name||'').toLowerCase();
+  const isBrandName = BRAND_KEYWORDS.some(k=>nameLower.includes(k.toLowerCase()));
+  const hasBrand = pc.brand || isBrandName;
+  if(hasBrand) score += c.brand ? 14 : 5;
+
+  // ⑥ 신축 (2020년 이후 +12, 2015~2019 +6, 2010~2014 +3)
+  const yr=Number(p.year||0);
+  if(yr>=2020) score+=12;
+  else if(yr>=2015) score+=6;
+  else if(yr>=2010) score+=3;
+  if(pc.newbuild && yr>=2015) score += c.newbuild ? 5 : 2;
+
+  // ⑦ 대단지 (세대수 기반 자동 판단)
+  const units=Number(p.units||0);
+  const isLarge = units>=1000;
+  const isVeryLarge = units>=2000;
+  if(isVeryLarge) score+=10;
+  else if(isLarge) score+=6;
+  else if(units>=500) score+=3;
+  if(pc.large && isLarge) score += c.large ? 5 : 2;
+
+  // ⑧ 용적률 (낮을수록 쾌적 — 200% 이하 보너스)
+  const far=Number(p.far||0);
+  if(far>0 && far<=180) score+=5;
+  else if(far<=220) score+=3;
+  else if(far<=250) score+=1;
+
+  // ⑨ 관심 매물 보너스
   if(p.status==='관심') score+=5;
-  // 세대수 (대단지 여부)
-  if(Number(p.units||0)>=1000) score+=5;
-  // 신축 (2018년 이후)
-  if(p.year&&Number(p.year)>=2018) score+=5;
-  return score;
+
+  return Math.min(score, 100);
 }
 
 function renderRankCards(){
