@@ -1639,9 +1639,9 @@ function editProperty(id){
 
 function duplicateProperty(id){
   const p = data.properties.find(x=>x.id===id); if(!p) return;
-  const copy = {...p, id:uid(), name:p.name+' (복사)', date:today()};
-  const idx = data.properties.findIndex(x=>x.id===id);
-  data.properties.splice(idx+1, 0, copy);
+  const now = new Date().toISOString();
+  const copy = {...p, id:uid(), name:p.name+' (복사)', date:today(), createdAt:now, updatedAt:now};
+  data.properties.unshift(copy);
   save(); renderAll();
 }
 
