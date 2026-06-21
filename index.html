@@ -1639,7 +1639,8 @@ function editProperty(id){
 
 function duplicateProperty(id){
   const p = data.properties.find(x=>x.id===id); if(!p) return;
-  const now = new Date().toISOString();
+  const maxTs = Math.max(...data.properties.map(x=>new Date(x.createdAt||0).getTime()));
+  const now = new Date(maxTs + 1).toISOString();
   const copy = {...p, id:uid(), name:p.name+' (복사)', date:today(), createdAt:now, updatedAt:now};
   data.properties.unshift(copy);
   save(); renderAll();
