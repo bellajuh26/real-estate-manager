@@ -1072,7 +1072,7 @@ function estimateSideCost(manwon, areaSqm){
   let rate = manwon<=60000 ? 0.01 : manwon<=90000 ? (((manwon/10000)-6)*(2/3)+1)/100 : 0.03;
   const acquire = Math.round(manwon * rate);
   const edu = Math.round(acquire * 0.1);
-  const rural = areaSqm > 85 ? Math.round(acquire * 0.1) : 0;
+  const rural = 0; // 도시(동) 지역 일반 취득 → 농어촌특별세 비과세
   const broker = Math.round(manwon * 0.004);
   const stamp = manwon >= 100000 ? 35 : manwon >= 10000 ? 15 : 0;
   const lawFirm = Math.max(50, Math.round(manwon * 0.0012));
@@ -1162,10 +1162,8 @@ function calcTax(manwon){
   // ── 지방교육세 (취득세×10%)
   const edu = Math.round(acquire * 0.1);
 
-  // ── 농어촌특별세: 전용면적 85㎡ 초과 시에만 부과 (취득세×10%)
-  const areaVal = Number(document.getElementById('p-area').value || 0);
-  const isOver85 = areaVal > 85;
-  const rural = isOver85 ? Math.round(acquire * 0.1) : 0;
+  // ── 농어촌특별세: 도시(동) 지역 일반 취득 → 비과세. 감면 혜택 시에만 발생하나 여기선 0으로 처리
+  const rural = 0;
   const acquireTotal = acquire + edu + rural;
 
   // ── 인지세 (매매계약서 기준, 국가 50% 부담 후 매수인 부담분)
@@ -1177,7 +1175,7 @@ function calcTax(manwon){
 
   // ── 힌트 업데이트
   const rHint = document.getElementById('tx-rural-hint');
-  rHint.textContent = !areaVal ? '면적 입력 시 자동판단' : isOver85 ? `${areaVal}㎡ 초과 → 취득세×10%` : `${areaVal}㎡ 이하 → 비과세`;
+  rHint.textContent = '도시(동) 지역 → 비과세';
   const aHint = document.getElementById('tx-acquire-hint');
   aHint.textContent = manwon<=60000 ? '6억 이하 → 1%' : manwon<=90000 ? `6~9억 → ${(acquireRate*100).toFixed(2)}%` : '9억 초과 → 3%';
 
