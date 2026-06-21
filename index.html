@@ -733,12 +733,17 @@
 
       <div class="tax-divider"></div>
 
+      <!-- 기타 부대비용 (인지세·법무사) -->
+      <div id="tx-extra-items"></div>
+
+      <div class="tax-divider"></div>
+
       <!-- 최종 합계 -->
       <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0 2px">
         <span style="font-size:13px;font-weight:700;color:var(--gray-800)">예상 총 부대비용</span>
         <span style="font-size:18px;font-weight:700;color:var(--red)" id="tx-total"></span>
       </div>
-      <div style="font-size:11px;color:var(--gray-400);text-align:right">중개보수 + 취득세 합계 기준 (보유세 제외)</div>
+      <div style="font-size:11px;color:var(--gray-400);text-align:right">중개보수 + 취득세 + 인지세 + 법무사/채권할인 (보유세 제외)</div>
     </div>
 
     <div class="form-group" style="margin-bottom:10px">
@@ -1059,6 +1064,21 @@ document.getElementById('del-modal').addEventListener('click',e=>{
   if(e.target===document.getElementById('del-modal')) closeDelModal();
 });
 
+// ─── 부대비용 추정 (간이 계산: 취득세+중개보수+인지세+법무사) ──
+function estimateSideCost(manwon, areaSqm){
+  if(!manwon) return 0;
+  manwon = Number(manwon);
+  areaSqm = Number(areaSqm||0);
+  let rate = manwon<=60000 ? 0.01 : manwon<=90000 ? (((manwon/10000)-6)*(2/3)+1)/100 : 0.03;
+  const acquire = Math.round(manwon * rate);
+  const edu = Math.round(acquire * 0.1);
+  const rural = areaSqm > 85 ? Math.round(acquire * 0.1) : 0;
+  const broker = Math.round(manwon * 0.004);
+  const stamp = manwon >= 100000 ? 35 : manwon >= 10000 ? 15 : 0;
+  const lawFirm = Math.max(50, Math.round(manwon * 0.0012));
+  return acquire + edu + rural + broker + stamp + lawFirm;
+}
+
 // ─── FORMAT ────────────────────────────────────────────────────
 function fmt(n){
   if(!n&&n!==0) return '-';
@@ -1142,16 +1162,22 @@ function calcTax(manwon){
   // ── 지방교육세 (취득세×10%)
   const edu = Math.round(acquire * 0.1);
 
-  // ── 농어촌특별세: 지역 판단
-  const regionVal = (document.getElementById('p-region').value || '').trim();
-  const EXEMPT = ['서울','부산','대구','인천','광주','대전','울산','세종'];
-  const isExempt = !regionVal || EXEMPT.some(r => regionVal.includes(r));
-  const rural = isExempt ? 0 : Math.round(acquire * 0.2);
+  // ── 농어촌특별세: 전용면적 85㎡ 초과 시에만 부과 (취득세×10%)
+  const areaVal = Number(document.getElementById('p-area').value || 0);
+  const isOver85 = areaVal > 85;
+  const rural = isOver85 ? Math.round(acquire * 0.1) : 0;
   const acquireTotal = acquire + edu + rural;
+
+  // ── 인지세 (매매계약서 기준, 국가 50% 부담 후 매수인 부담분)
+  // 1억~10억: 15만원, 10억 초과: 35만원
+  const stamp = manwon >= 100000 ? 35 : manwon >= 10000 ? 15 : 0;
+
+  // ── 법무사 비용 (소유권이전등기 대행료 + 국민주택채권 할인비용 포함 추정)
+  const lawFirm = Math.max(50, Math.round(manwon * 0.0012));
 
   // ── 힌트 업데이트
   const rHint = document.getElementById('tx-rural-hint');
-  rHint.textContent = !regionVal ? '지역 입력 시 자동판단' : isExempt ? '도시지역 → 비과세' : '농어촌지역 → 취득세×20%';
+  rHint.textContent = !areaVal ? '면적 입력 시 자동판단' : isOver85 ? `${areaVal}㎡ 초과 → 취득세×10%` : `${areaVal}㎡ 이하 → 비과세`;
   const aHint = document.getElementById('tx-acquire-hint');
   aHint.textContent = manwon<=60000 ? '6억 이하 → 1%' : manwon<=90000 ? `6~9억 → ${(acquireRate*100).toFixed(2)}%` : '9억 초과 → 3%';
 
@@ -1175,8 +1201,8 @@ function calcTax(manwon){
 
   const holdTotal = propertyTax + propEdu + urban;
 
-  // ── 최종 총 부대비용 (중개보수 + 취득세합계)
-  const total = broker + acquireTotal;
+  // ── 최종 총 부대비용 (중개보수 + 취득세합계 + 인지세 + 법무사)
+  const total = broker + acquireTotal + stamp + lawFirm;
 
   const f = v => v > 0 ? fmtPrice(Math.round(v)) : '비과세';
   const fw = v => fmtPrice(Math.round(v));
@@ -1191,6 +1217,26 @@ function calcTax(manwon){
   document.getElementById('tx-prop-edu').textContent      = fw(propEdu) + '/년';
   document.getElementById('tx-urban').textContent         = fw(urban) + '/년';
   document.getElementById('tx-total').textContent         = fw(total);
+
+  // 인지세·법무사 항목 동적 표시 (없으면 생성)
+  const extraWrap = document.getElementById('tx-extra-items');
+  if(extraWrap){
+    extraWrap.innerHTML = `
+      <div class="tax-group-row" style="margin-top:8px">
+        <div class="tax-group-label">기타 부대비용</div>
+        <div class="tax-group-value">${fw(stamp + lawFirm)}</div>
+      </div>
+      <div class="tax-sub-rows">
+        <div class="tax-sub-row">
+          <span class="tax-sub-label">· 인지세 <span class="tax-hint">${manwon>=100000?'10억↑ → 35만원':'1억~10억 → 15만원'}</span></span>
+          <span class="tax-sub-value">${stamp>0?fw(stamp):'없음'}</span>
+        </div>
+        <div class="tax-sub-row">
+          <span class="tax-sub-label">· 법무사+채권할인 <span class="tax-hint">등기대행+채권할인 추정</span></span>
+          <span class="tax-sub-value">${fw(lawFirm)}</span>
+        </div>
+      </div>`;
+  }
 }
 
 // ─── AI PROPERTY ANALYSIS (룰베이스 + 지식 기반) ──────────────
@@ -1709,7 +1755,7 @@ function renderDashPropTable(){
       <td style="color:var(--gray-700);white-space:nowrap">${far}</td>
       <td class="pt-area">${area}</td>
       <td style="color:var(--gray-700)">${p.rooms||'-'}</td>
-      <td><div class="pt-price">${fmt(p.buyPrice)}</div>${p.buyPrice?`<div style="font-size:10px;color:var(--gray-500);margin-top:2px">부대비용 포함 약 <span style="color:var(--red);font-weight:700">${fmt(Math.round(Number(p.buyPrice)*1.04))}</span></div>`:''}</td>
+      <td><div class="pt-price">${fmt(p.buyPrice)}</div>${p.buyPrice?`<div style="font-size:10px;color:var(--gray-500);margin-top:2px">부대비용 포함 약 <span style="color:var(--red);font-weight:700">${fmt(Number(p.buyPrice)+estimateSideCost(p.buyPrice,p.area))}</span></div>`:''}</td>
       <td class="pt-heart"><button onclick="toggleTableHeart('${p.id}')" style="background:none;border:none;cursor:pointer;padding:2px;line-height:0;border-radius:50%;transition:transform 0.15s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">${heartSvg}</button></td>
       <td><div class="pt-memo" title="${memo}">${memo||'-'}</div></td>
     </tr>`;
@@ -1799,7 +1845,7 @@ function renderProperties(){
       <div class="prop-price-row">
         <div>
           <div class="prop-price">${fmt(p.buyPrice)}</div>
-          ${p.buyPrice?`<div style="font-size:11px;color:var(--gray-500);margin-top:2px">부대비용 포함 약 <span style="color:var(--red);font-weight:700">${fmt(Math.round(Number(p.buyPrice)*1.04))}</span></div>`:''}
+          ${p.buyPrice?`<div style="font-size:11px;color:var(--gray-500);margin-top:2px">부대비용 포함 약 <span style="color:var(--red);font-weight:700">${fmt(Number(p.buyPrice)+estimateSideCost(p.buyPrice,p.area))}</span></div>`:''}
         </div>
         <div style="text-align:right">
           <div>${yieldHtml}</div>${rentHtml}
