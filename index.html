@@ -436,6 +436,7 @@
       <select id="prop-sort" class="form-select" style="width:auto;min-width:130px;padding:6px 12px;font-size:12px;margin-left:10px" onchange="renderProperties()">
         <option value="recent">최신 등록순</option>
         <option value="modified">최근 수정순</option>
+        <option value="score">AI 점수순</option>
         <option value="price_asc">매입가 낮은순</option>
         <option value="price_desc">매입가 높은순</option>
       </select>
@@ -1710,6 +1711,7 @@ function renderProperties(){
     if(sort==='price_asc')  return (Number(a.buyPrice)||0)-(Number(b.buyPrice)||0);
     if(sort==='price_desc') return (Number(b.buyPrice)||0)-(Number(a.buyPrice)||0);
     if(sort==='modified')   return new Date(b.updatedAt||0) - new Date(a.updatedAt||0);
+    if(sort==='score')      return scoreProperty(b) - scoreProperty(a);
     // recent: 등록일 최신순 (createdAt 없으면 updatedAt fallback)
     return new Date(b.createdAt||b.updatedAt||0) - new Date(a.createdAt||a.updatedAt||0);
   });
