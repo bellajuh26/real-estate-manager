@@ -396,24 +396,6 @@
     <div id="dash-heart-list"></div>
   </div>
 
-  <!-- 4. 등록 매물 전체 테이블 -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-title">등록 매물 리스트</div>
-      <button class="btn-outline btn-sm" onclick="switchTab('property')">관리하기</button>
-    </div>
-    <div class="prop-table-wrap">
-      <table class="prop-table" id="dash-prop-table">
-        <thead>
-          <tr>
-            <th>아파트명</th><th>지역/주소</th><th>연식</th><th>세대수</th><th>용적률</th>
-            <th>평수</th><th>방구조</th><th>가격</th><th>관심</th><th>메모</th>
-          </tr>
-        </thead>
-        <tbody id="dash-prop-tbody"></tbody>
-      </table>
-    </div>
-  </div>
 
 </div>
 
@@ -441,6 +423,7 @@
         <option value="price_desc">매입가 높은순</option>
       </select>
     </div>
+    <div id="region-summary"></div>
     <div id="property-list"></div>
   </div>
 </div>
@@ -1735,6 +1718,7 @@ function renderDashPropTable(){
 
 // 매물 관리 페이지 카드
 let propFilter='전체';
+let propRegionFilter='';
 function renderProperties(){
   const props=data.properties;
   const search=(document.getElementById('prop-search')||{}).value||'';
@@ -1746,7 +1730,8 @@ function renderProperties(){
   let filtered=props.filter(p=>{
     const mt=propFilter==='전체'||p.type===propFilter;
     const ms=!search||p.name.includes(search)||(p.region||'').includes(search)||(p.location||'').includes(search)||(p.memo||'').includes(search);
-    return mt&&ms;
+    const mr=!propRegionFilter||(p.region||'').trim()===propRegionFilter;
+    return mt&&ms&&mr;
   });
   // 정렬
   filtered=[...filtered].sort((a,b)=>{
@@ -1759,6 +1744,24 @@ function renderProperties(){
   });
   const container=document.getElementById('property-list'); if(!container) return;
   const pc=document.getElementById('prop-count'); if(pc) pc.textContent=`총 ${filtered.length}건`;
+
+  // 구/동 요약
+  const regionSummary=document.getElementById('region-summary');
+  if(regionSummary){
+    const regionMap={};
+    data.properties.forEach(p=>{
+      const r=(p.region||'기타').trim();
+      if(!regionMap[r]) regionMap[r]={count:0,ids:[]};
+      regionMap[r].count++;
+      regionMap[r].ids.push(p.id);
+    });
+    const chips=Object.entries(regionMap).sort((a,b)=>b[1].count-a[1].count)
+      .map(([r,v])=>`<button onclick="propRegionFilter='${r}';renderProperties()" style="display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:20px;border:1.5px solid ${propRegionFilter===r?'var(--blue)':'var(--gray-200)'};background:${propRegionFilter===r?'var(--blue-light)':'#fff'};color:${propRegionFilter===r?'var(--blue)':'var(--gray-700)'};font-size:12px;font-weight:600;cursor:pointer;margin:0 4px 6px 0">
+        📍 ${r} <span style="background:${propRegionFilter===r?'var(--blue)':'var(--gray-300)'};color:#fff;border-radius:10px;padding:1px 7px;font-size:11px">${v.count}</span>
+      </button>`).join('');
+    regionSummary.innerHTML=`<div style="margin-bottom:12px;padding:12px 0 6px"><div style="font-size:12px;font-weight:700;color:var(--gray-500);margin-bottom:8px">📌 지역별 매물</div><div style="display:flex;flex-wrap:wrap">${propRegionFilter?`<button onclick="propRegionFilter='';renderProperties()" style="display:inline-flex;align-items:center;gap:4px;padding:6px 13px;border-radius:20px;border:1.5px solid var(--gray-200);background:#fff;color:var(--gray-500);font-size:12px;cursor:pointer;margin:0 4px 6px 0">전체보기</button>`:''}${chips}</div></div>`;
+  }
+
   if(filtered.length===0){
     container.innerHTML=`<div class="empty-state"><div class="empty-icon">🏠</div><div class="empty-text">매물을 추가해보세요</div></div>`;
     return;
@@ -2169,7 +2172,6 @@ function renderDashboard(){
   renderTargetBanner();
   renderRankCards();
   renderDashHeartList();
-  renderDashPropTable();
 }
 
 function renderAll(){ renderDashboard(); renderProperties(); renderAssets(); renderNotes(); }
