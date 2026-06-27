@@ -734,11 +734,16 @@
     <input type="hidden" id="p-status" value="보류">
     <input type="hidden" id="p-name-hidden">
     <div id="p-complex-label" style="font-size:12px;color:var(--gray-500);margin-bottom:14px;padding:6px 10px;background:var(--gray-50);border-radius:8px"></div>
-    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
+    <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr 1fr">
       <div class="form-group">
-        <label class="form-label">면적 (㎡)</label>
+        <label class="form-label">공급면적 (㎡)</label>
         <input type="number" class="form-input" id="p-area" placeholder="84" oninput="updatePyeong()">
         <div id="p-area-pyeong" style="font-size:11px;color:var(--gray-500);margin-top:4px;"></div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">전용면적 (㎡)</label>
+        <input type="number" class="form-input" id="p-exclusive-area" placeholder="59" oninput="updateExclusivePyeong()">
+        <div id="p-exclusive-area-pyeong" style="font-size:11px;color:var(--gray-500);margin-top:4px;"></div>
       </div>
       <div class="form-group">
         <label class="form-label">방 구조</label>
@@ -1402,6 +1407,12 @@ function updatePyeong(){
   if(v&&Number(v)>0){ el.textContent=`≈ ${sqmToPyeong(v)}평`; }
   else { el.textContent=''; }
 }
+function updateExclusivePyeong(){
+  const v=document.getElementById('p-exclusive-area').value;
+  const el=document.getElementById('p-exclusive-area-pyeong');
+  if(v&&Number(v)>0){ el.textContent=`≈ ${sqmToPyeong(v)}평`; }
+  else { el.textContent=''; }
+}
 
 // ─── TARGET ────────────────────────────────────────────────────
 function saveTarget(){
@@ -1559,6 +1570,7 @@ function saveProperty(){
     far: ci.far||existing.far||'',
     floor: ci.floor||existing.floor||'',
     area:document.getElementById('p-area').value,
+    exclusiveArea:document.getElementById('p-exclusive-area').value,
     rooms:document.getElementById('p-rooms').value,
     dong:document.getElementById('p-dong').value,
     hosu:document.getElementById('p-hosu').value,
@@ -1633,9 +1645,10 @@ function saveComplexInfo(){
 }
 
 function clearPropForm(){
-  ['p-area','p-rooms','p-dong','p-hosu','p-buy-price','p-memo-good','p-memo-bad','p-memo-warn','prop-edit-id','p-name-hidden']
+  ['p-area','p-exclusive-area','p-rooms','p-dong','p-hosu','p-buy-price','p-memo-good','p-memo-bad','p-memo-warn','prop-edit-id','p-name-hidden']
     .forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
   const pyeong=document.getElementById('p-area-pyeong'); if(pyeong) pyeong.textContent='';
+  const epyeong=document.getElementById('p-exclusive-area-pyeong'); if(epyeong) epyeong.textContent='';
   const preview=document.getElementById('p-price-preview'); if(preview) preview.textContent='';
   const taxBox=document.getElementById('p-tax-box'); if(taxBox) taxBox.style.display='none';
   document.getElementById('p-status').value='보류';
@@ -1654,6 +1667,8 @@ function editProperty(id){
   const lbl=document.getElementById('p-complex-label');
   if(lbl) lbl.textContent='단지: '+p.name+(p.region?' · '+p.region:'');
   document.getElementById('p-area').value=p.area||'';
+  document.getElementById('p-exclusive-area').value=p.exclusiveArea||'';
+  updateExclusivePyeong();
   document.getElementById('p-rooms').value=p.rooms||'';
   document.getElementById('p-dong').value=p.dong||'';
   document.getElementById('p-hosu').value=p.hosu||'';
@@ -2002,12 +2017,13 @@ function renderProperties(){
         <!-- 왼쪽: 단지·매물 정보 + 메모 -->
         <div class="detail-col" style="flex:1;min-width:0;display:flex;flex-direction:column">
           <div style="background:var(--gray-50);border-radius:10px;padding:2px 14px 6px;margin-bottom:10px">
-            ${row('위치',(p.region||'')+(p.location?' · '+p.location:''))}
+            ${(()=>{const ci=data.complexInfo[p.name]||{}; const addr=ci.address||p.location||''; return row('위치',(p.region||'')+(addr?' · '+addr:''));})()}
             ${row('준공',p.year?p.year+'년':'')}
             ${row('세대수',p.units?Number(p.units).toLocaleString()+'세대':'')}
             ${row('용적률',p.far?p.far+'%':'')}
             ${row('총 층수',p.floor?p.floor+'층':'')}
-            ${row('전용면적',p.area?p.area+'㎡ ('+sqmToPyeong(p.area)+'평)':'')}
+            ${row('공급면적',p.area?p.area+'㎡ ('+sqmToPyeong(p.area)+'평)':'')}
+            ${row('전용면적',p.exclusiveArea?p.exclusiveArea+'㎡ ('+sqmToPyeong(p.exclusiveArea)+'평)':'')}
             ${row('방 구조',p.rooms||'')}
             ${row('동 / 층',(p.dong?p.dong+'동 ':'')+(p.hosu||''))}
           </div>
