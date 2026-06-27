@@ -1742,6 +1742,13 @@ function addPropertyToComplex(){
 }
 
 // 단지 전체 삭제
+function togglePropHeart(id){
+  const p=data.properties.find(x=>x.id===id); if(!p) return;
+  p.status = p.status==='관심' ? '보류' : '관심';
+  p.updatedAt=new Date().toISOString();
+  save(); renderProperties();
+}
+
 function toggleComplexHeart(name){
   if(!data.complexInfo[name]) data.complexInfo[name]={};
   data.complexInfo[name].heart=!data.complexInfo[name].heart;
@@ -1932,7 +1939,8 @@ function renderProperties(){
   container.innerHTML=filtered.map(p=>{
     const score=scoreProperty(p);
     const expanded=expandedPropIds.has(p.id);
-    const heartSvg=p.status==='관심'?'<svg width="13" height="13" viewBox="0 0 32 32" fill="none"><path d="M16 27.5C16 27.5 3 19.5 3 10.5C3 7.46 5.46 5 8.5 5C10.74 5 12.7 6.3 13.7 8.2C14.1 9 15.1 9 15.5 8.2C16.5 6.3 18.46 5 20.7 5C23.54 5 26 7.46 26 10.5C26 19.5 16 27.5 16 27.5Z" fill="#F04452"/></svg> ':'';
+    const isHeart=p.status==='관심';
+    const heartSvg=`<button ontouchstart="event.stopPropagation()" ontouchend="event.stopPropagation();event.preventDefault();togglePropHeart('${p.id}')" onclick="event.stopPropagation();togglePropHeart('${p.id}')" style="background:none;border:none;cursor:pointer;padding:0;line-height:1;font-size:15px;flex-shrink:0">${isHeart?'❤️':'🤍'}</button>`;
     const scoreColor=score>=80?'#3182F6':score>=60?'#16a34a':'#9ca3af';
 
     // 메모 파싱
