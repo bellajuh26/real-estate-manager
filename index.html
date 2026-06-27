@@ -418,7 +418,7 @@
       <select id="prop-sort" class="form-select" style="width:auto;min-width:130px;padding:6px 12px;font-size:12px;margin-left:10px" onchange="renderProperties()">
         <option value="recent">최신 등록순</option>
         <option value="modified">최근 수정순</option>
-        <option value="score">AI 점수순</option>
+        <option value="score">점수순</option>
         <option value="price_asc">매입가 낮은순</option>
         <option value="price_desc">매입가 높은순</option>
       </select>
@@ -748,10 +748,7 @@
 
     <div class="form-group" style="margin-bottom:10px">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-        <div class="form-label" style="margin-bottom:0">고려 항목 (체크하면 AI 추천 점수에 반영)</div>
-        <button type="button" id="ai-analyze-btn" onclick="analyzeProperty()" style="background:var(--blue);color:white;border:none;border-radius:7px;padding:5px 12px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px">
-          ✨ AI 분석
-        </button>
+        <div class="form-label" style="margin-bottom:0">고려 항목</div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:8px">
         <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-subway"> 역세권</label>
@@ -762,17 +759,6 @@
         <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer"><input type="checkbox" id="p-large"> 대단지</label>
       </div>
 
-      <!-- AI 분석 결과 박스 -->
-      <div id="ai-result-box" style="display:none;margin-top:12px;border:1.5px solid #C7D7FE;border-radius:10px;overflow:hidden">
-        <div style="background:#EBF3FE;padding:9px 14px;display:flex;align-items:center;justify-content:space-between">
-          <span style="font-size:12px;font-weight:700;color:#1B64DA">✨ AI 분석 결과 <span style="font-size:10px;font-weight:500;color:#3182F6">(참고용 · 실제와 다를 수 있음)</span></span>
-          <button type="button" onclick="applyAiResult()" style="background:#3182F6;color:white;border:none;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer">항목에 적용</button>
-        </div>
-        <div id="ai-result-content" style="padding:12px 14px;background:white;font-size:12px;line-height:1.7;color:var(--gray-700)"></div>
-      </div>
-      <div id="ai-loading" style="display:none;margin-top:12px;padding:14px;background:#EBF3FE;border-radius:10px;text-align:center;font-size:13px;color:#3182F6;font-weight:600">
-        ✨ AI가 주소를 분석하고 있어요...
-      </div>
     </div>
     <div class="form-group">
       <label class="form-label">메모</label>
@@ -967,7 +953,9 @@ function load(){
   data.properties.forEach((p,i)=>{
     if(!p.createdAt) p.createdAt = new Date(Date.now() - (data.properties.length-i)*1000).toISOString();
     if(!p.updatedAt) p.updatedAt = p.createdAt;
+    if(!data.criteriaReset) p.criteria = {subway:false,infra:false,school:false,brand:false,newbuild:false,large:false};
   });
+  if(!data.criteriaReset){ data.criteriaReset=true; save(); }
 }
 
 async function loadFromCloud(){
@@ -983,7 +971,9 @@ async function loadFromCloud(){
       data.properties.forEach((p,i)=>{
         if(!p.createdAt) p.createdAt = new Date(Date.now() - (data.properties.length-i)*1000).toISOString();
         if(!p.updatedAt) p.updatedAt = p.createdAt;
+        if(!data.criteriaReset) p.criteria = {subway:false,infra:false,school:false,brand:false,newbuild:false,large:false};
       });
+      if(!data.criteriaReset){ data.criteriaReset=true; }
       _storageSet('asset_mgr_v3', JSON.stringify(data));
       setSyncStatus('saved');
       renderAll();
@@ -1237,168 +1227,7 @@ function calcTax(manwon){
   }
 }
 
-// ─── AI PROPERTY ANALYSIS (룰베이스 + 지식 기반) ──────────────
-let _aiAnalysisResult = null;
 
-function analyzeProperty(){
-  const name     = (document.getElementById('p-name').value||'').trim();
-  const region   = (document.getElementById('p-region').value||'').trim();
-  const location = (document.getElementById('p-location').value||'').trim();
-  const year     = Number(document.getElementById('p-year').value||0);
-  const units    = Number(document.getElementById('p-units').value||0);
-
-  if(!name && !region){ alert('아파트명 또는 지역을 먼저 입력해주세요.'); return; }
-
-  document.getElementById('ai-loading').style.display='block';
-  document.getElementById('ai-result-box').style.display='none';
-  document.getElementById('ai-analyze-btn').disabled=true;
-
-  // 약간의 딜레이로 로딩 UX 표시
-  setTimeout(()=>{
-    try {
-      _aiAnalysisResult = runAnalysis(name, region, location, year, units);
-      renderAiResult(_aiAnalysisResult);
-    } catch(e) {
-      document.getElementById('ai-result-content').innerHTML =
-        `<span style="color:var(--red)">분석 오류: ${e.message}</span>`;
-      document.getElementById('ai-result-box').style.display='block';
-    } finally {
-      document.getElementById('ai-loading').style.display='none';
-      document.getElementById('ai-analyze-btn').disabled=false;
-    }
-  }, 600);
-}
-
-function runAnalysis(name, region, location, year, units){
-  const full = (name+' '+region+' '+location).toLowerCase();
-
-  // ── 브랜드 판단
-  const BRANDS = {
-    '래미안':'삼성물산(래미안)',
-    '힐스테이트':'현대엔지니어링(힐스테이트)',
-    '자이':'GS건설(자이)',
-    '푸르지오':'대우건설(푸르지오)',
-    'e편한세상':'DL이앤씨(e편한세상)',
-    '아이파크':'HDC현대산업개발(아이파크)',
-    '롯데캐슬':'롯데건설(롯데캐슬)',
-    '더샵':'포스코이앤씨(더샵)',
-    'sk뷰':'SK에코플랜트(SK뷰)',
-    '위브':'두산건설(위브)',
-    '호반베르디움':'호반건설(호반베르디움)',
-    '중흥s클래스':'중흥건설(중흥S클래스)',
-    '우미린':'우미건설(우미린)',
-    '센트럴파크':'대방건설(센트럴파크)',
-    '한신더휴':'한신공영(한신더휴)',
-    '제일풍경채':'제일건설(제일풍경채)',
-    '동원로얄듀크':'동원개발(로얄듀크)',
-  };
-  let brandYn=false, brandName='';
-  for(const [key,val] of Object.entries(BRANDS)){
-    if(full.includes(key)){ brandYn=true; brandName=val; break; }
-  }
-
-  // ── 역세권 판단 (주요 역세권 지역)
-  const SUBWAY_AREAS = [
-    '강남','서초','송파','마포','영등포','여의도','용산','성동','광진','동작',
-    '관악','동대문','중구','종로','강서','양천','구로','금천','은평','서대문',
-    '노원','도봉','강북','성북','중랑','강동','광화문','홍대','합정','신촌',
-    '이태원','압구정','청담','잠실','판교','분당','일산','수원','인천',
-    '부산','대구','대전','광주','울산','수지','광교','동탄','미금','정자',
-    '야탑','서현','이매','오리','죽전','기흥','구성','상현','수내','서판교',
-    '역삼','삼성','선릉','논현','신논현','언주','양재','교대','방배'
-  ];
-  const subwayYn = SUBWAY_AREAS.some(a => full.includes(a));
-  const subwayReason = subwayYn
-    ? `${region} 지역은 지하철 접근성이 양호한 것으로 파악됩니다`
-    : `입력된 주소 기준으로 역세권 여부를 명확히 판단하기 어렵습니다 (직접 확인 권장)`;
-
-  // ── 인프라 판단 (도심·신도시 등)
-  const INFRA_AREAS = [
-    '강남','서초','송파','마포','영등포','여의도','용산','판교','분당','일산',
-    '수원','인천','부산','대구','광주','대전','세종','동탄','광교','위례',
-    '강동','성동','광진','중구','종로','은평','노원','강서','양천','구로'
-  ];
-  const infraYn = INFRA_AREAS.some(a => full.includes(a));
-  const infraReason = infraYn
-    ? `${region} 지역은 대형마트·병원·공원 등 생활인프라가 잘 갖춰진 지역입니다`
-    : `생활인프라 수준은 현지 확인이 필요합니다`;
-
-  // ── 학군 판단
-  const SCHOOL_AREAS = [
-    '강남','서초','송파','목동','양천','노원','중계','분당','판교','수지',
-    '광교','위례','마포','용산','성동','대치','개포','도곡','잠원','반포',
-    '방배','사당','흑석','동작','과천','평촌','의왕','부산 해운대','수성구'
-  ];
-  const schoolYn = SCHOOL_AREAS.some(a => full.includes(a));
-  const schoolReason = schoolYn
-    ? `${region} 지역은 우수 학군 또는 학원가 밀집 지역으로 알려져 있습니다`
-    : `학군 수준은 해당 학교구역 확인이 필요합니다`;
-
-  // ── 신축 판단 (2018년 이후)
-  let newbuildYn=false, newbuildReason='';
-  if(year >= 2018){
-    newbuildYn=true;
-    newbuildReason=`${year}년 준공으로 신축(2018년 이후) 기준에 해당합니다`;
-  } else if(year > 0){
-    newbuildYn=false;
-    newbuildReason=`${year}년 준공으로 신축 기준(2018년 이후) 미해당입니다`;
-  } else {
-    // 아파트명에 '신축','뉴','new' 포함 여부
-    newbuildYn = full.includes('신축')||full.includes('뉴');
-    newbuildReason = '준공연도가 입력되지 않아 아파트명으로만 판단했습니다 (연도 입력 권장)';
-  }
-
-  // ── 대단지 판단 (1000세대 이상)
-  let largeYn=false, largeReason='';
-  if(units >= 1000){
-    largeYn=true;
-    largeReason=`${units.toLocaleString()}세대로 대단지(1,000세대 이상) 기준에 해당합니다`;
-  } else if(units > 0){
-    largeYn=false;
-    largeReason=`${units.toLocaleString()}세대로 대단지 기준(1,000세대 이상) 미해당입니다`;
-  } else {
-    // 아파트명으로 추정
-    const LARGE_KNOWN = ['헬리오시티','파크리오','래미안파크','엘스','트리지움','리센츠','아이파크','DMC','마포래미안','목동신시가지','은마'];
-    largeYn = LARGE_KNOWN.some(k=>full.includes(k.toLowerCase()));
-    largeReason = '세대수가 입력되지 않아 단지명으로만 추정했습니다 (세대수 입력 권장)';
-  }
-
-  return {
-    subway:   { yn: subwayYn,  reason: subwayReason },
-    infra:    { yn: infraYn,   reason: infraReason },
-    school:   { yn: schoolYn,  reason: schoolReason },
-    brand:    { yn: brandYn,   reason: brandYn ? `${brandName} 브랜드 아파트입니다` : '대형 건설사 브랜드명이 확인되지 않습니다 (직접 확인 권장)' },
-    newbuild: { yn: newbuildYn, reason: newbuildReason },
-    large:    { yn: largeYn,   reason: largeReason },
-  };
-}
-
-function renderAiResult(r){
-  const labels = {subway:'역세권',infra:'인프라',school:'학군',brand:'브랜드',newbuild:'신축',large:'대단지'};
-  const html = Object.entries(labels).map(([k,l])=>{
-    const item = r[k]||{};
-    const yn = item.yn;
-    const badge = yn
-      ? `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;background:#E6FAF6;color:#00B493">✓ 해당</span>`
-      : `<span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;background:#F2F4F6;color:#8B95A1">✗ 미해당</span>`;
-    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:5px 0;border-bottom:1px solid #F2F4F6">
-      <div style="min-width:42px;font-weight:700;color:var(--gray-800)">${l}</div>
-      ${badge}
-      <div style="color:var(--gray-500);font-size:11px;flex:1">${item.reason||''}</div>
-    </div>`;
-  }).join('');
-  document.getElementById('ai-result-content').innerHTML = html;
-  document.getElementById('ai-result-box').style.display='block';
-}
-
-function applyAiResult(){
-  if(!_aiAnalysisResult) return;
-  const map = {subway:'p-subway',infra:'p-infra',school:'p-school',brand:'p-brand',newbuild:'p-new',large:'p-large'};
-  Object.entries(map).forEach(([k,id])=>{
-    const el = document.getElementById(id);
-    if(el && _aiAnalysisResult[k]) el.checked = _aiAnalysisResult[k].yn;
-  });
-}
 
 // ─── HEART TOGGLE ──────────────────────────────────────────────
 function toggleHeart(){
@@ -1482,7 +1311,7 @@ function autoBrandDetect(name){
   // 세대수 기반 대단지 힌트 (units 필드 기준으로는 저장시 판단)
 }
 
-// ─── SCORING ───────────────────────────────────────────────────
+// ─── SCORING (수동 체크 기반) ────────────────────────────────────
 function scoreProperty(p){
   const c=data.target.criteria||{};
   const budget=Number(data.target.budget)||Infinity;
@@ -1490,53 +1319,21 @@ function scoreProperty(p){
   const pc=p.criteria||{};
   let score=0;
 
-  // ① 예산 적합도 (최대 20점)
+  // ① 예산 적합도 (최대 30점)
   if(budget<Infinity){
-    if(price<=budget) score+=20;
-    else if(price<=budget*1.05) score+=14;
-    else if(price<=budget*1.1) score+=8;
-    else if(price<=budget*1.2) score+=3;
-  } else { score+=10; }
+    if(price<=budget)        score+=30;
+    else if(price<=budget*1.05) score+=20;
+    else if(price<=budget*1.1)  score+=10;
+    else if(price<=budget*1.2)  score+=4;
+  } else { score+=15; }
 
-  // ② 역세권 (목표 중요항목이면 18점, 아니면 8점)
-  if(pc.subway) score += c.subway ? 18 : 8;
-
-  // ③ 인프라 (대형마트·병원·편의시설)
-  if(pc.infra) score += c.infra ? 15 : 6;
-
-  // ④ 학군 (초·중 배정 우수 지역)
-  if(pc.school) score += c.school ? 15 : 6;
-
-  // ⑤ 브랜드 — 이름에서 자동 보정
-  const nameLower=(p.name||'').toLowerCase();
-  const isBrandName = BRAND_KEYWORDS.some(k=>nameLower.includes(k.toLowerCase()));
-  const hasBrand = pc.brand || isBrandName;
-  if(hasBrand) score += c.brand ? 14 : 5;
-
-  // ⑥ 신축 (2020년 이후 +12, 2015~2019 +6, 2010~2014 +3)
-  const yr=Number(p.year||0);
-  if(yr>=2020) score+=12;
-  else if(yr>=2015) score+=6;
-  else if(yr>=2010) score+=3;
-  if(pc.newbuild && yr>=2015) score += c.newbuild ? 5 : 2;
-
-  // ⑦ 대단지 (세대수 기반 자동 판단)
-  const units=Number(p.units||0);
-  const isLarge = units>=1000;
-  const isVeryLarge = units>=2000;
-  if(isVeryLarge) score+=10;
-  else if(isLarge) score+=6;
-  else if(units>=500) score+=3;
-  if(pc.large && isLarge) score += c.large ? 5 : 2;
-
-  // ⑧ 용적률 (낮을수록 쾌적 — 200% 이하 보너스)
-  const far=Number(p.far||0);
-  if(far>0 && far<=180) score+=5;
-  else if(far<=220) score+=3;
-  else if(far<=250) score+=1;
-
-  // ⑨ 관심 매물 보너스
-  if(p.status==='관심') score+=5;
+  // ② 수동 체크 항목 (항목당 점수, 목표에 포함된 항목은 가중치 적용)
+  if(pc.subway)   score += c.subway   ? 15 : 10;
+  if(pc.infra)    score += c.infra    ? 12 : 8;
+  if(pc.school)   score += c.school   ? 15 : 10;
+  if(pc.brand)    score += c.brand    ? 10 : 7;
+  if(pc.newbuild) score += c.newbuild ? 12 : 8;
+  if(pc.large)    score += c.large    ? 10 : 7;
 
   return Math.min(score, 100);
 }
@@ -1545,7 +1342,7 @@ function renderRankCards(){
   const container=document.getElementById('rank-cards');
   if(!container) return;
   if(data.properties.length===0){
-    container.innerHTML=`<div class="rank-empty">매물을 추가하면 AI가 자동으로 순위를 계산해드려요</div>`;
+    container.innerHTML=`<div class="rank-empty">매물을 추가하고 고려 항목을 체크하면 점수 순위가 계산됩니다</div>`;
     return;
   }
   const scored=data.properties.map(p=>({...p,score:scoreProperty(p)})).sort((a,b)=>b.score-a.score).slice(0,3);
@@ -1658,9 +1455,7 @@ function clearPropForm(){
   document.getElementById('p-area-pyeong').textContent='';
   document.getElementById('p-price-preview').textContent='';
   document.getElementById('p-tax-box').style.display='none';
-  document.getElementById('ai-result-box').style.display='none';
-  document.getElementById('ai-loading').style.display='none';
-  _aiAnalysisResult=null;
+
   document.getElementById('p-type').value='아파트';
   document.getElementById('p-status').value='보류';
   setHeart(false);
@@ -1696,12 +1491,7 @@ function editProperty(id){
   document.getElementById('p-memo-etc').value = findMemo('🎸기타: ');
   updatePyeong();
   const cr=p.criteria||{};
-  document.getElementById('p-subway').checked=!!cr.subway;
-  document.getElementById('p-infra').checked=!!cr.infra;
-  document.getElementById('p-school').checked=!!cr.school;
-  document.getElementById('p-brand').checked=!!cr.brand;
-  document.getElementById('p-new').checked=!!cr.newbuild;
-  document.getElementById('p-large').checked=!!cr.large;
+  ['p-subway','p-infra','p-school','p-brand','p-new','p-large'].forEach(i=>{ document.getElementById(i).checked=false; });
   openModal('prop-modal');
 }
 
@@ -1746,7 +1536,7 @@ function renderDashPropTable(){
     const score = scoreProperty(p);
     const memo=p.memo||'';
     return `<tr>
-      <td><div class="pt-name">${p.name} <span style="font-size:10px;font-weight:700;padding:1px 7px;border-radius:20px;background:#EBF3FE;color:#3182F6;vertical-align:middle">${score}점</span></div><span class="pt-badge" style="background:${color}18;color:${color}">${p.type}</span></td>
+      <td><div class="pt-name">${p.name}</div><span class="pt-badge" style="background:${color}18;color:${color}">${p.type}</span></td>
       <td><div style="font-size:13px;font-weight:600">${p.region||'-'}</div><div class="pt-addr">${p.location||''}</div></td>
       <td style="color:var(--gray-700);white-space:nowrap">${yr}</td>
       <td style="color:var(--gray-700);white-space:nowrap">${units}</td>
@@ -1816,8 +1606,7 @@ function renderProperties(){
     const yieldHtml=y!==null?`<span class="${parseFloat(y)>=0?'yield-pos':'yield-neg'}">${parseFloat(y)>=0?'▲':'▼'} ${Math.abs(y)}%</span>`:'';
     const rentHtml=p.rent?`<span style="font-size:12px;color:var(--gray-500);font-weight:500">월 ${parseInt(p.rent).toLocaleString()}만원</span>`:'';
     const cr=p.criteria||{};
-    const criteriaHtml=Object.entries({subway:'역세권',infra:'인프라',school:'학군',brand:'브랜드',newbuild:'신축',large:'대단지'})
-      .filter(([k])=>cr[k]).map(([,l])=>`<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:var(--blue-light);color:var(--blue)">${l}</span>`).join('');
+    const criteriaHtml='';
     return `
     <div class="property-item">
       <div class="prop-actions">
@@ -1987,7 +1776,7 @@ function calcLoan(){
   const totalInterest = totalPayment - amount * 10000;
   box.style.display = 'block';
   document.getElementById('lr-principal').textContent = manwonToWonStr(amount) + ' (' + fmtW(amount) + ')';
-  document.getElementById('lr-first-payment').textContent = Math.round(firstPayment/10000).toLocaleString() + '만원 / 월';
+  document.getElementById('lr-first-payment').textContent = Math.round(firstPayment).toLocaleString() + '원 / 월';
   document.getElementById('lr-total-interest').textContent = fmtW(totalInterest/10000);
   document.getElementById('lr-total-payment').textContent = fmtW(totalPayment/10000);
   // store for save
@@ -2024,7 +1813,7 @@ function addLoanPlan(){
     rate: c.rate,
     method: methodLabel,
     years: c.selectedYear,
-    firstPayment: Math.round(c.firstPayment / 10000),
+    firstPayment: Math.round(c.firstPayment),
     totalInterest: Math.round(c.totalInterest / 10000),
     totalPayment: Math.round(c.totalPayment / 10000),
     schedule: c.schedule
@@ -2085,7 +1874,7 @@ function renderLoanPlans(){
       <div class="lpi-grid">
         <div class="lpi-cell">
           <div class="lpi-cell-label">월 납입액 (1회차)</div>
-          <div class="lpi-cell-value blue">${p.firstPayment.toLocaleString()}만원</div>
+          <div class="lpi-cell-value blue">${p.firstPayment.toLocaleString()}원</div>
         </div>
         <div class="lpi-cell">
           <div class="lpi-cell-label">총 납입액</div>
