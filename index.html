@@ -1737,30 +1737,42 @@ function renderProperties(){
       </div>`;
 
     const detailHtml=expanded?`
-      <div style="margin-top:12px;border-top:1px solid var(--gray-200);padding-top:14px">
+      <div style="margin-top:12px;border-top:1px solid var(--gray-200);padding-top:14px;display:flex;gap:16px;align-items:flex-start">
 
-        <div style="background:var(--gray-50);border-radius:10px;padding:2px 14px 6px;margin-bottom:12px">
-          ${row('위치',(p.region||'')+(p.location?' · '+p.location:''))}
-          ${row('준공',p.year?p.year+'년':'')}
-          ${row('세대수',p.units?Number(p.units).toLocaleString()+'세대':'')}
-          ${row('용적률',p.far?p.far+'%':'')}
-          ${row('총 층수',p.floor?p.floor+'층':'')}
-          ${row('전용면적',p.area?p.area+'㎡  ('+sqmToPyeong(p.area)+'평)':'')}
-          ${row('방 구조',p.rooms||'')}
-          ${row('동 / 층',(p.dong?p.dong+'동  ':'')+(p.hosu||''))}
+        <!-- 왼쪽: 단지·매물 정보 + 메모 -->
+        <div style="flex:1;min-width:0">
+          <div style="background:var(--gray-50);border-radius:10px;padding:2px 14px 6px;margin-bottom:10px">
+            ${row('위치',(p.region||'')+(p.location?' · '+p.location:''))}
+            ${row('준공',p.year?p.year+'년':'')}
+            ${row('세대수',p.units?Number(p.units).toLocaleString()+'세대':'')}
+            ${row('용적률',p.far?p.far+'%':'')}
+            ${row('총 층수',p.floor?p.floor+'층':'')}
+            ${row('전용면적',p.area?p.area+'㎡ ('+sqmToPyeong(p.area)+'평)':'')}
+            ${row('방 구조',p.rooms||'')}
+            ${row('동 / 층',(p.dong?p.dong+'동 ':'')+(p.hosu||''))}
+          </div>
+          ${badges.length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">${badges.map(b=>`<span style="font-size:11px;font-weight:600;background:#EBF3FE;color:#3182F6;padding:3px 10px;border-radius:20px">${b}</span>`).join('')}</div>`:''}
+          ${mGood||mBad||mWarn||mEtc?`<div style="display:flex;flex-direction:column;gap:6px">
+            ${mGood?`<div style="padding:8px 12px;background:#f0fdf4;border-radius:8px;border-left:3px solid #16a34a"><div style="font-size:10px;font-weight:700;color:#15803d;margin-bottom:2px;letter-spacing:.5px">장점</div><div style="font-size:12px;color:#166534;line-height:1.5">${mGood.replace('👍장점: ','')}</div></div>`:''}
+            ${mBad?`<div style="padding:8px 12px;background:#fef2f2;border-radius:8px;border-left:3px solid #dc2626"><div style="font-size:10px;font-weight:700;color:#b91c1c;margin-bottom:2px;letter-spacing:.5px">단점</div><div style="font-size:12px;color:#991b1b;line-height:1.5">${mBad.replace('👎단점: ','')}</div></div>`:''}
+            ${mWarn?`<div style="padding:8px 12px;background:#fffbeb;border-radius:8px;border-left:3px solid #f59e0b"><div style="font-size:10px;font-weight:700;color:#b45309;margin-bottom:2px;letter-spacing:.5px">주의사항</div><div style="font-size:12px;color:#92400e;line-height:1.5">${mWarn.replace('🚨주의사항: ','')}</div></div>`:''}
+            ${mEtc?`<div style="padding:8px 12px;background:var(--gray-50);border-radius:8px;border-left:3px solid var(--gray-300)"><div style="font-size:10px;font-weight:700;color:var(--gray-400);margin-bottom:2px;letter-spacing:.5px">기타</div><div style="font-size:12px;color:var(--gray-600);line-height:1.5">${mEtc.replace('🎸기타: ','')}</div></div>`:''}
+          </div>`:''}
         </div>
 
-        ${badges.length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">${badges.map(b=>`<span style="font-size:11px;font-weight:600;background:#EBF3FE;color:#3182F6;padding:3px 10px;border-radius:20px">${b}</span>`).join('')}</div>`:''}
+        <!-- 세로 구분선 -->
+        <div style="width:1px;background:var(--gray-200);align-self:stretch;flex-shrink:0"></div>
 
-        ${_m?`<div style="background:var(--gray-50);border-radius:12px;padding:4px 14px 10px;margin-bottom:12px">
-          <div style="display:flex;align-items:center;gap:6px;padding:10px 0 8px;border-bottom:1px solid var(--gray-200)">
+        <!-- 오른쪽: 예상 부대비용 -->
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
             <span style="font-size:12px;font-weight:700;color:var(--gray-700)">🧾 예상 부대비용</span>
             <span style="font-size:10px;color:var(--gray-400)">(자동계산 · 실제와 다를 수 있음)</span>
           </div>
 
           ${sectionHead('중개보수','상한 0.4%',fmtM(_broker),'')}
 
-          ${sectionHead('취득세 합계',`${(_m/10000).toFixed(1)}억 이하 → ${(_rate*100).toFixed(0)}%`,fmtM(_acquire+_edu),'')}
+          ${sectionHead('취득세 합계',(_m/10000).toFixed(1)+'억 이하 → '+(_rate*100).toFixed(0)+'%',fmtM(_acquire+_edu),'')}
           ${subRow('취득세',fmtM(_acquire),'')}
           ${subRow('지방교육세 취득세×10%',fmtM(_edu),'')}
           ${subRow('농어촌특별세 도시(동) 지역 → 비과세','비과세','')}
@@ -1771,39 +1783,32 @@ function renderProperties(){
           ${subRow('도시지역분 과세표준×0.14%',fmtM(_urban),'/년')}
 
           ${sectionHead('기타 부대비용','',fmtM(_stamp+_law),'')}
-          ${_stamp?subRow(`인지세 ${_m>=100000?'15만원 초과':'1억~10억'} → ${_stamp}만원`,fmtM(_stamp),''):''}
+          ${_stamp?subRow('인지세 '+(_m>=100000?'15만원 초과':'1억~10억')+' → '+_stamp+'만원',fmtM(_stamp),''):''}
           ${subRow('법무사+채권할인 등기대행+채권할인 추정',fmtM(_law),'')}
 
-          <div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 0 4px;border-top:2px solid var(--gray-300);margin-top:4px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0 6px;border-top:2px solid var(--gray-300);margin-top:4px">
             <div>
-              <span style="font-size:14px;font-weight:700;color:var(--gray-900)">예상 총 부대비용</span>
+              <span style="font-size:13px;font-weight:700;color:var(--gray-900)">예상 총 부대비용</span>
               <div style="font-size:10px;color:var(--gray-400);margin-top:2px">중개보수+취득세+인지세+법무사/채권할인 (보유세 제외)</div>
             </div>
-            <span style="font-size:18px;font-weight:700;color:var(--red)">${fmtM(_total)}</span>
+            <span style="font-size:17px;font-weight:700;color:var(--red)">${fmtM(_total)}</span>
           </div>
-        </div>`:''}
 
-        <div style="background:#fff7ed;border-radius:10px;padding:12px 14px;margin-bottom:12px">
-          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-            <span style="font-size:12px;font-weight:700;color:#9a3412">매매가</span>
-            <span style="font-size:18px;font-weight:700;color:var(--gray-900)">${fmt(p.buyPrice)||'-'}</span>
+          <div style="background:#fff7ed;border-radius:10px;padding:10px 14px;margin-top:8px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+              <span style="font-size:12px;font-weight:600;color:#9a3412">매매가</span>
+              <span style="font-size:16px;font-weight:700;color:var(--gray-900)">${fmt(p.buyPrice)||'-'}</span>
+            </div>
+            ${_m?`<div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:7px;border-top:1px dashed #fed7aa">
+              <span style="font-size:12px;font-weight:700;color:#7c2d12">총 필요 금액 (부대비용 포함)</span>
+              <span style="font-size:14px;font-weight:700;color:#c2410c">약 ${fmt(_m+_total)}</span>
+            </div>`:''}
+            ${p.rent?`<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:5px">
+              <span style="font-size:11px;color:var(--gray-400)">월세</span>
+              <span style="font-size:12px;font-weight:600;color:var(--gray-700)">${p.rent}만원 / 월</span>
+            </div>`:''}
           </div>
-          ${_m?`<div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:8px;border-top:1px dashed #fed7aa">
-            <span style="font-size:12px;font-weight:700;color:#7c2d12">총 필요 금액 (부대비용 포함)</span>
-            <span style="font-size:15px;font-weight:700;color:#c2410c">약 ${fmt(_m+_total)}</span>
-          </div>`:''}
-          ${p.rent?`<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px">
-            <span style="font-size:11px;color:var(--gray-400)">월세</span>
-            <span style="font-size:13px;font-weight:600;color:var(--gray-700)">${p.rent}만원 / 월</span>
-          </div>`:''}
         </div>
-
-        ${mGood||mBad||mWarn||mEtc?`<div style="display:flex;flex-direction:column;gap:7px">
-          ${mGood?`<div style="padding:9px 12px;background:#f0fdf4;border-radius:8px;border-left:3px solid #16a34a"><div style="font-size:10px;font-weight:700;color:#15803d;margin-bottom:3px;letter-spacing:.5px">장점</div><div style="font-size:12px;color:#166534;line-height:1.5">${mGood.replace('👍장점: ','')}</div></div>`:''}
-          ${mBad?`<div style="padding:9px 12px;background:#fef2f2;border-radius:8px;border-left:3px solid #dc2626"><div style="font-size:10px;font-weight:700;color:#b91c1c;margin-bottom:3px;letter-spacing:.5px">단점</div><div style="font-size:12px;color:#991b1b;line-height:1.5">${mBad.replace('👎단점: ','')}</div></div>`:''}
-          ${mWarn?`<div style="padding:9px 12px;background:#fffbeb;border-radius:8px;border-left:3px solid #f59e0b"><div style="font-size:10px;font-weight:700;color:#b45309;margin-bottom:3px;letter-spacing:.5px">주의사항</div><div style="font-size:12px;color:#92400e;line-height:1.5">${mWarn.replace('🚨주의사항: ','')}</div></div>`:''}
-          ${mEtc?`<div style="padding:9px 12px;background:var(--gray-50);border-radius:8px;border-left:3px solid var(--gray-300)"><div style="font-size:10px;font-weight:700;color:var(--gray-400);margin-bottom:3px;letter-spacing:.5px">기타</div><div style="font-size:12px;color:var(--gray-600);line-height:1.5">${mEtc.replace('🎸기타: ','')}</div></div>`:''}
-        </div>`:''}
       </div>`:'';
 
     return `
