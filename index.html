@@ -367,25 +367,41 @@
     .nav-tabs { overflow-x:auto; -webkit-overflow-scrolling:touch; flex-shrink:0; }
 
     /* ── 매물 카드 모바일 레이아웃 ── */
-    .property-item { padding:12px; }
-    .prop-card-header { flex-direction:column; align-items:stretch; gap:6px; }
-    .prop-card-left { font-size:14px; gap:8px; }
-    .pc-dong { font-size:15px; font-weight:800; }
-    .pc-floor { font-size:14px; }
-    .pc-area { font-size:13px; }
-    .pc-rooms { font-size:12px; }
-    .prop-card-right { justify-content:space-between; }
-    .prop-card-actions { gap:4px; }
-    .prop-card-actions .btn-outline,
-    .prop-card-actions .btn-danger { padding:4px 10px !important; font-size:12px !important; }
-    .prop-card-meta { gap:8px; }
-    .pc-score { font-size:13px; padding:3px 10px; }
-    .pc-price { font-size:17px; }
+    .property-item { padding:10px; }
 
-    /* ── 대출 페이지: sticky 해제, 납입계획/메모 표시 ── */
-    .loan-calc-section { position:static !important; }
-    .loan-plan-section #loan-plan-list { max-height:none; overflow-y:visible; }
-    .loan-memo-col #loan-memo-list { max-height:none; overflow-y:visible; }
+    /* 1행: 동/층/평/방 */
+    .prop-card-header { flex-direction:column; align-items:stretch; gap:5px; }
+    .prop-card-left {
+      display:flex; align-items:center;
+      gap:5px; flex-wrap:nowrap; overflow:hidden;
+      font-size:12px; font-weight:700;
+    }
+    .prop-card-left > * { white-space:nowrap; flex-shrink:0; }
+    .pc-dong { font-size:13px; font-weight:800; }
+    .pc-floor { font-size:12px; }
+    .pc-area { font-size:12px; }
+    .pc-rooms { font-size:11px; }
+
+    /* 2행: 버튼 + 점수/가격 */
+    .prop-card-right {
+      display:flex; align-items:center;
+      justify-content:space-between; flex-wrap:nowrap; gap:4px;
+    }
+    .prop-card-actions { display:flex; align-items:center; gap:3px; flex-wrap:nowrap; flex-shrink:0; }
+    .prop-card-actions .btn-outline,
+    .prop-card-actions .btn-danger {
+      padding:2px 6px !important; font-size:11px !important;
+      white-space:nowrap; flex-shrink:0;
+    }
+    .prop-card-meta { display:flex; align-items:center; gap:5px; flex-wrap:nowrap; flex-shrink:0; }
+    .pc-score { font-size:11px; padding:2px 7px; white-space:nowrap; }
+    .pc-price { font-size:14px; white-space:nowrap; }
+    .pc-arrow { flex-shrink:0; }
+
+    /* ── 대출 페이지: sticky 완전 해제 ── */
+    .loan-calc-section { position:static !important; top:auto !important; }
+    .loan-plan-section #loan-plan-list { max-height:none !important; overflow-y:visible !important; }
+    .loan-memo-col #loan-memo-list { max-height:none !important; overflow-y:visible !important; }
   }
 </style>
 </head>
