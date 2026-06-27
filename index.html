@@ -2352,7 +2352,7 @@ function renderLoanPlans(){
       <div class="lpi-header">
         <div>
           <div style="display:flex;align-items:center;gap:8px">
-            <div class="lpi-title">대출 ${p.amount.toLocaleString()}만원 · ${p.years}년</div>
+            <div class="lpi-title">대출 ${(p.amount/10000).toFixed(1)}억 · ${p.years}년</div>
             <span class="lpi-badge">${p.product}</span>
           </div>
           <div class="lpi-date">${p.date} · ${p.method} · 연${p.rate}%</div>
