@@ -1712,10 +1712,29 @@ function renderProperties(){
     const _stamp=_m>=100000?35:_m>=10000?15:0;
     const _law=Math.max(50,Math.round(_m*0.0012));
     const _total=_acquire+_edu+_broker+_stamp+_law;
+    // 보유세 계산 (공시가 60% 가정)
+    const _official=_m*0.6; // 공시가 (만원)
+    const _taxBase=_official*0.6; // 과세표준 (만원)
+    const _property=_taxBase<=6000?Math.round(_taxBase*0.001):
+      _taxBase<=15000?Math.round(6+(_taxBase-6000)*0.0015):
+      _taxBase<=30000?Math.round(19.5+(_taxBase-15000)*0.0025):
+      Math.round(57+(_taxBase-30000)*0.004);
+    const _propEdu=Math.round(_property*0.2);
+    const _urban=Math.round(_taxBase*0.0014);
+    const _holdTotal=_property+_propEdu+_urban;
+    const fmtM=v=>`${Math.round(v)}만원`;
     const fmtW=v=>v?`${(v*10000).toLocaleString()}원`:'';
-    const costRow=(label,val,sub)=>`<div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid #fed7aa">
-      <div><span style="font-size:12px;color:#92400e">${label}</span>${sub?`<span style="font-size:10px;color:#b45309;margin-left:5px">${sub}</span>`:''}</div>
-      <span style="font-size:12px;font-weight:600;color:#7c2d12">${fmtW(val)}</span></div>`;
+    // 부대비용 섹션 헬퍼
+    const sectionHead=(title,sub,val,unit)=>`
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:10px 0 8px;border-bottom:2px solid var(--gray-200)">
+        <div><span style="font-size:13px;font-weight:700;color:var(--gray-800)">${title}</span>${sub?`<span style="font-size:11px;color:var(--gray-400);margin-left:6px">${sub}</span>`:''}</div>
+        <span style="font-size:14px;font-weight:700;color:var(--gray-900)">${val}${unit?`<span style="font-size:11px;font-weight:500;color:var(--gray-500)">${unit}</span>`:''}</span>
+      </div>`;
+    const subRow=(label,val,unit)=>`
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0 5px 10px;border-bottom:1px solid var(--gray-100)">
+        <span style="font-size:12px;color:var(--gray-500)">· ${label}</span>
+        <span style="font-size:12px;color:var(--gray-600)">${val}${unit?`<span style="font-size:10px;color:var(--gray-400)">${unit}</span>`:''}</span>
+      </div>`;
 
     const detailHtml=expanded?`
       <div style="margin-top:12px;border-top:1px solid var(--gray-200);padding-top:14px">
@@ -1733,33 +1752,49 @@ function renderProperties(){
 
         ${badges.length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">${badges.map(b=>`<span style="font-size:11px;font-weight:600;background:#EBF3FE;color:#3182F6;padding:3px 10px;border-radius:20px">${b}</span>`).join('')}</div>`:''}
 
-        <div style="background:#fff7ed;border-radius:10px;padding:12px 14px;margin-bottom:12px;display:flex;gap:14px">
-          <!-- 왼쪽: 매매가 + 총 필요금액 -->
-          <div style="display:flex;flex-direction:column;justify-content:space-between;min-width:110px">
-            <div>
-              <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:.5px;margin-bottom:4px">매매가</div>
-              <div style="font-size:18px;font-weight:700;color:var(--gray-900)">${fmt(p.buyPrice)||'-'}</div>
-            </div>
-            ${p.buyPrice&&_m?`<div style="margin-top:14px;padding-top:10px;border-top:2px solid #fed7aa">
-              <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:.5px;margin-bottom:4px">총 필요 금액</div>
-              <div style="font-size:15px;font-weight:700;color:#c2410c">약 ${fmt(_m+_total)}</div>
-              ${p.rent?`<div style="font-size:11px;color:var(--gray-500);margin-top:6px">월세 ${p.rent}만원/월</div>`:''}
-            </div>`:''}
+        ${_m?`<div style="background:var(--gray-50);border-radius:12px;padding:4px 14px 10px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:6px;padding:10px 0 8px;border-bottom:1px solid var(--gray-200)">
+            <span style="font-size:12px;font-weight:700;color:var(--gray-700)">🧾 예상 부대비용</span>
+            <span style="font-size:10px;color:var(--gray-400)">(자동계산 · 실제와 다를 수 있음)</span>
           </div>
-          <!-- 세로 구분선 -->
-          ${p.buyPrice&&_m?`<div style="width:1px;background:#fed7aa;flex-shrink:0"></div>`:''}
-          <!-- 오른쪽: 부대비용 내역 -->
-          ${p.buyPrice&&_m?`<div style="flex:1;min-width:0">
-            <div style="font-size:10px;font-weight:700;color:#b45309;letter-spacing:.5px;margin-bottom:6px">부대비용 내역</div>
-            ${costRow('취득세',_acquire,`세율 ${(_rate*100).toFixed(1)}%`)}
-            ${costRow('지방교육세',_edu,'취득세×10%')}
-            ${_broker?costRow('중개보수',_broker,'0.4%'):''}
-            ${_stamp?costRow('인지세',_stamp,_m>=100000?'15만원 초과':'1억~10억'):''}
-            ${costRow('법무사',_law,'')}
-            <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:6px;margin-top:4px;border-top:1px solid #fed7aa">
-              <span style="font-size:11px;font-weight:700;color:#9a3412">합계</span>
-              <span style="font-size:12px;font-weight:700;color:#c2410c">${fmtW(_total)}</span>
+
+          ${sectionHead('중개보수','상한 0.4%',fmtM(_broker),'')}
+
+          ${sectionHead('취득세 합계',`${(_m/10000).toFixed(1)}억 이하 → ${(_rate*100).toFixed(0)}%`,fmtM(_acquire+_edu),'')}
+          ${subRow('취득세',fmtM(_acquire),'')}
+          ${subRow('지방교육세 취득세×10%',fmtM(_edu),'')}
+          ${subRow('농어촌특별세 도시(동) 지역 → 비과세','비과세','')}
+
+          ${sectionHead('보유세 합계','연간 추정 · 공시가 60% 가정',fmtM(_holdTotal),'/년')}
+          ${subRow('재산세',fmtM(_property),'/년')}
+          ${subRow('지방교육세 재산세×20%',fmtM(_propEdu),'/년')}
+          ${subRow('도시지역분 과세표준×0.14%',fmtM(_urban),'/년')}
+
+          ${sectionHead('기타 부대비용','',fmtM(_stamp+_law),'')}
+          ${_stamp?subRow(`인지세 ${_m>=100000?'15만원 초과':'1억~10억'} → ${_stamp}만원`,fmtM(_stamp),''):''}
+          ${subRow('법무사+채권할인 등기대행+채권할인 추정',fmtM(_law),'')}
+
+          <div style="display:flex;justify-content:space-between;align-items:baseline;padding:12px 0 4px;border-top:2px solid var(--gray-300);margin-top:4px">
+            <div>
+              <span style="font-size:14px;font-weight:700;color:var(--gray-900)">예상 총 부대비용</span>
+              <div style="font-size:10px;color:var(--gray-400);margin-top:2px">중개보수+취득세+인지세+법무사/채권할인 (보유세 제외)</div>
             </div>
+            <span style="font-size:18px;font-weight:700;color:var(--red)">${fmtM(_total)}</span>
+          </div>
+        </div>`:''}
+
+        <div style="background:#fff7ed;border-radius:10px;padding:12px 14px;margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+            <span style="font-size:12px;font-weight:700;color:#9a3412">매매가</span>
+            <span style="font-size:18px;font-weight:700;color:var(--gray-900)">${fmt(p.buyPrice)||'-'}</span>
+          </div>
+          ${_m?`<div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:8px;border-top:1px dashed #fed7aa">
+            <span style="font-size:12px;font-weight:700;color:#7c2d12">총 필요 금액 (부대비용 포함)</span>
+            <span style="font-size:15px;font-weight:700;color:#c2410c">약 ${fmt(_m+_total)}</span>
+          </div>`:''}
+          ${p.rent?`<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:6px">
+            <span style="font-size:11px;color:var(--gray-400)">월세</span>
+            <span style="font-size:13px;font-weight:600;color:var(--gray-700)">${p.rent}만원 / 월</span>
           </div>`:''}
         </div>
 
