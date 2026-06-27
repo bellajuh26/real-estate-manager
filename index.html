@@ -2356,7 +2356,7 @@ function renderLoanPlans(){
             <span class="lpi-badge">${p.product}</span>
           </div>
           <div class="lpi-date">${p.date} · ${p.method} · 연${p.rate}%</div>
-          ${p.buyPrice?`<div style="font-size:11px;color:var(--gray-500);margin-top:3px">매매가 ${p.buyPrice.toLocaleString()}만원 · 자기자금 ${(p.deposit||0).toLocaleString()}만원 · 대출 ${p.amount.toLocaleString()}만원</div>`:''}
+          ${p.buyPrice?`<div style="font-size:11px;color:var(--gray-500);margin-top:3px">매매가 ${(p.buyPrice/10000).toFixed(1)}억 · 자기자금 ${((p.deposit||0)/10000).toFixed(1)}억 · 대출 ${(p.amount/10000).toFixed(1)}억</div>`:''}
 
         </div>
         <button class="btn-danger" onclick="deleteLoanPlan('${p.id}')">🗑</button>
