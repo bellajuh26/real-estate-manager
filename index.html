@@ -2607,7 +2607,17 @@ async function checkAuth(){
       }
     }
     _storageSet('asset_mgr_user_id', authId);
-    if(cloudData){ data = cloudData; save(); }
+    if(cloudData){
+      data = cloudData;
+      if(!data.target) data.target={budget:'',criteria:{}};
+      if(!data.complexInfo) data.complexInfo={};
+      if(!data.loanPlans || data.loanPlans.length===0){
+        const oldPlans=_storageGet('loan_plans_v1');
+        if(oldPlans){ try{ data.loanPlans=JSON.parse(oldPlans); }catch(e){ data.loanPlans=[]; } }
+        else { data.loanPlans=[]; }
+      }
+      save();
+    }
     _storageSet('asset_mgr_sync_enabled', 'true');
   }
 }
