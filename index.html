@@ -1612,7 +1612,7 @@ function debounceMemoSave(propId){
 
 function saveMemoInline(propId){
   const textareas=document.querySelectorAll(`textarea[data-prop-id="${propId}"]`);
-  const prefixMap={good:'👍장점: ',bad:'👎단점: ',warn:'🚨주의사항: ',etc:'🎸기타: '};
+  const prefixMap={good:'👍장점: ',bad:'👎단점: ',warn:'🚨주의사항: '};
   const prop=data.properties.find(p=>p.id===propId);
   if(!prop) return;
   const parts=[];
@@ -1793,25 +1793,24 @@ function renderProperties(){
             ${row('동 / 층',(p.dong?p.dong+'동 ':'')+(p.hosu||''))}
           </div>
           ${badges.length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">${badges.map(b=>`<span style="font-size:11px;font-weight:600;background:#EBF3FE;color:#3182F6;padding:3px 10px;border-radius:20px">${b}</span>`).join('')}</div>`:''}
-          <div class="memo-wrap" style="border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;overflow:hidden" onclick="event.stopPropagation()">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="memo-wrap" style="border-radius:10px;padding:4px 14px 10px;display:flex;flex-direction:column;overflow:hidden" onclick="event.stopPropagation()">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
               <span style="font-size:10px;font-weight:700;color:var(--gray-400);letter-spacing:.5px">메모</span>
               <span id="memo-status-${p.id}" style="font-size:10px;color:var(--gray-300)"></span>
             </div>
             <div style="display:flex;flex-direction:column;gap:7px;flex:1;min-height:0">
               ${[
-                {key:'good', emoji:'👍', label:'장점',   labelBg:'#16a34a', tc:'#166534', prefix:'👍장점: ', val: mGood?mGood.replace('👍장점: ',''):''},
-                {key:'bad',  emoji:'👎', label:'단점',   labelBg:'#dc2626', tc:'#991b1b', prefix:'👎단점: ', val: mBad?mBad.replace('👎단점: ',''):''},
-                {key:'warn', emoji:'🚨', label:'주의사항', labelBg:'#f59e0b', tc:'#92400e', prefix:'🚨주의사항: ', val: mWarn?mWarn.replace('🚨주의사항: ',''):''},
-                {key:'etc',  emoji:'🎸', label:'기타',   labelBg:'#6b7280', tc:'#374151', prefix:'🎸기타: ', val: mEtc?mEtc.replace('🎸기타: ',''):''}
-              ].map(m=>`<div style="border-radius:10px;overflow:hidden;border:1px solid #e5e7eb;flex:1;display:flex;flex-direction:column">
+                {key:'good', emoji:'👍', label:'장점', flex:1,  labelBg:'#16a34a', tc:'#166534', prefix:'👍장점: ', val: mGood?mGood.replace('👍장점: ',''):''},
+                {key:'bad',  emoji:'👎', label:'단점', flex:1,  labelBg:'#dc2626', tc:'#991b1b', prefix:'👎단점: ', val: mBad?mBad.replace('👎단점: ',''):''},
+                {key:'warn', emoji:'🚨', label:'그외',  flex:1,  labelBg:'#f59e0b', tc:'#92400e', prefix:'🚨주의사항: ', val: mWarn?mWarn.replace('🚨주의사항: ',''):''}
+              ].map(m=>`<div style="border-radius:10px;overflow:hidden;border:1px solid #e5e7eb;flex:${m.flex};display:flex;flex-direction:column">
                 <div style="background:var(--gray-50);padding:6px 12px 2px;display:flex;align-items:center;gap:5px;border-bottom:1px solid #e5e7eb;flex-shrink:0">
                   <span style="font-size:13px">${m.emoji}</span>
                   <span style="font-size:11px;font-weight:700;color:${m.labelBg};letter-spacing:.3px">${m.label}</span>
                 </div>
                 <textarea data-memo-key="${m.key}" data-prop-id="${p.id}" placeholder="입력하세요"
                   oninput="debounceMemoSave('${p.id}')"
-                  style="width:100%;box-sizing:border-box;border:none;background:var(--gray-50);resize:none;font-size:12px;color:${m.tc};line-height:1.6;padding:6px 12px 8px;outline:none;font-family:inherit;flex:1;min-height:40px">${m.val}</textarea>
+                  style="width:100%;box-sizing:border-box;border:none;background:var(--gray-50);resize:none;font-size:12px;color:${m.tc};line-height:1.6;padding:6px 12px 8px;outline:none;font-family:inherit;flex:1;min-height:30px">${m.val}</textarea>
               </div>`).join('')}
             </div>
           </div>
