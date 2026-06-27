@@ -342,6 +342,20 @@
     .summary-card { padding:14px 16px; }
   }
 
+  /* 매물 카드 헤더 기본 (데스크탑) */
+  .prop-card-header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .prop-card-left { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:700; color:var(--gray-900); flex-shrink:0; }
+  .pc-dong { color:var(--gray-900); }
+  .pc-floor { color:var(--gray-600); }
+  .pc-area { color:var(--gray-500); font-weight:500; }
+  .pc-rooms { color:var(--gray-400); font-size:11px; }
+  .prop-card-right { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+  .prop-card-actions { display:flex; align-items:center; gap:4px; }
+  .prop-card-meta { display:flex; align-items:center; gap:6px; }
+  .pc-score { font-size:12px; font-weight:700; color:#fff; padding:2px 9px; border-radius:20px; white-space:nowrap; }
+  .pc-price { font-size:16px; font-weight:700; color:var(--gray-900); white-space:nowrap; }
+  .pc-arrow { font-size:11px; color:var(--gray-400); }
+
   /* 모바일 전용 숨김 */
   @media(max-width:768px){
     .nav-hide-mobile { display:none !important; }
@@ -351,6 +365,27 @@
     #prop-layout { flex-direction:column; height:auto; overflow:visible; }
     /* 상단 네비 탭 스크롤 가능하게 */
     .nav-tabs { overflow-x:auto; -webkit-overflow-scrolling:touch; flex-shrink:0; }
+
+    /* ── 매물 카드 모바일 레이아웃 ── */
+    .property-item { padding:12px; }
+    .prop-card-header { flex-direction:column; align-items:stretch; gap:6px; }
+    .prop-card-left { font-size:14px; gap:8px; }
+    .pc-dong { font-size:15px; font-weight:800; }
+    .pc-floor { font-size:14px; }
+    .pc-area { font-size:13px; }
+    .pc-rooms { font-size:12px; }
+    .prop-card-right { justify-content:space-between; }
+    .prop-card-actions { gap:4px; }
+    .prop-card-actions .btn-outline,
+    .prop-card-actions .btn-danger { padding:4px 10px !important; font-size:12px !important; }
+    .prop-card-meta { gap:8px; }
+    .pc-score { font-size:13px; padding:3px 10px; }
+    .pc-price { font-size:17px; }
+
+    /* ── 대출 페이지: sticky 해제, 납입계획/메모 표시 ── */
+    .loan-calc-section { position:static !important; }
+    .loan-plan-section #loan-plan-list { max-height:none; overflow-y:visible; }
+    .loan-memo-col #loan-memo-list { max-height:none; overflow-y:visible; }
   }
 </style>
 </head>
@@ -1959,21 +1994,25 @@ function renderProperties(){
 
     return `
     <div class="property-item" data-pid="${p.id}" style="margin-bottom:10px;cursor:pointer" onclick="togglePropDetail('${p.id}')">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--gray-900)">
+      <div class="prop-card-header">
+        <div class="prop-card-left">
           ${heartSvg}
-          ${p.dong?`<span>${String(p.dong.replace(/[^0-9]/g,'')).padStart(3,'0')}동</span>`:''}
-          ${p.hosu?`<span style="color:var(--gray-600)">${/^\d+$/.test((p.hosu||'').trim())?String(p.hosu.trim()).padStart(2,'0')+'층':p.hosu}</span>`:''}
-          ${p.area?`<span style="color:var(--gray-500);font-weight:500">${sqmToPyeong(p.area)}평</span>`:''}
-          ${p.rooms?`<span style="color:var(--gray-400);font-size:11px">${p.rooms}</span>`:''}
+          ${p.dong?`<span class="pc-dong">${String(p.dong.replace(/[^0-9]/g,'')).padStart(3,'0')}동</span>`:''}
+          ${p.hosu?`<span class="pc-floor">${/^\d+$/.test((p.hosu||'').trim())?String(p.hosu.trim()).padStart(2,'0')+'층':p.hosu}</span>`:''}
+          ${p.area?`<span class="pc-area">${sqmToPyeong(p.area)}평</span>`:''}
+          ${p.rooms?`<span class="pc-rooms">${p.rooms}</span>`:''}
         </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <button class="btn-outline btn-sm" onclick="event.stopPropagation();editProperty('${p.id}')" style="padding:2px 8px;font-size:12px">수정</button>
-          <button class="btn-outline btn-sm" onclick="event.stopPropagation();duplicateProperty('${p.id}')" style="padding:2px 8px;font-size:12px">복제</button>
-          <button class="btn-danger btn-sm" onclick="event.stopPropagation();deleteProperty('${p.id}')" style="padding:2px 8px;font-size:12px">삭제</button>
-          <span style="font-size:12px;font-weight:700;color:#fff;background:${scoreColor};padding:2px 9px;border-radius:20px">${score}점</span>
-          <span style="font-size:16px;font-weight:700;color:var(--gray-900)">${fmt(p.buyPrice)}</span>
-          <span style="font-size:11px;color:var(--gray-400)">${expanded?'▲':'▼'}</span>
+        <div class="prop-card-right">
+          <div class="prop-card-actions">
+            <button class="btn-outline btn-sm" onclick="event.stopPropagation();editProperty('${p.id}')" style="padding:2px 8px;font-size:12px">수정</button>
+            <button class="btn-outline btn-sm" onclick="event.stopPropagation();duplicateProperty('${p.id}')" style="padding:2px 8px;font-size:12px">복제</button>
+            <button class="btn-danger btn-sm" onclick="event.stopPropagation();deleteProperty('${p.id}')" style="padding:2px 8px;font-size:12px">삭제</button>
+          </div>
+          <div class="prop-card-meta">
+            <span class="pc-score" style="background:${scoreColor}">${score}점</span>
+            <span class="pc-price">${fmt(p.buyPrice)}</span>
+            <span class="pc-arrow">${expanded?'▲':'▼'}</span>
+          </div>
         </div>
       </div>
       ${detailHtml}
