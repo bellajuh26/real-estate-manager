@@ -862,6 +862,17 @@ async function cloudLoad(userId){
 }
 
 async function cloudSave(userId, payload){
+  // 빈 데이터로 클라우드 덮어쓰기 방지
+  const newCount = (payload.properties||[]).length;
+  try {
+    const existing = await cloudLoad(userId);
+    const existingCount = (existing?.properties||[]).length;
+    // 기존 데이터가 더 많은데 새 데이터가 비어있으면 저장 차단
+    if(existingCount > 0 && newCount === 0){
+      console.warn('[cloudSave 차단] 기존 매물', existingCount, '건 → 빈 데이터로 덮어쓰기 방지');
+      return;
+    }
+  } catch(e) { /* 기존 데이터 조회 실패 시 저장 진행 */ }
   try {
     const res = await fetch(`${SUPABASE_URL}/rest/v1/${SYNC_TABLE}`, {
       method: 'POST',
