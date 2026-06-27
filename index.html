@@ -1752,12 +1752,15 @@ function renderProperties(){
             ${row('동 / 층',(p.dong?p.dong+'동 ':'')+(p.hosu||''))}
           </div>
           ${badges.length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">${badges.map(b=>`<span style="font-size:11px;font-weight:600;background:#EBF3FE;color:#3182F6;padding:3px 10px;border-radius:20px">${b}</span>`).join('')}</div>`:''}
-          ${mGood||mBad||mWarn||mEtc?`<div style="display:flex;flex-direction:column;gap:6px">
-            ${mGood?`<div style="padding:8px 12px;background:#f0fdf4;border-radius:8px;border-left:3px solid #16a34a"><div style="font-size:10px;font-weight:700;color:#15803d;margin-bottom:2px;letter-spacing:.5px">장점</div><div style="font-size:12px;color:#166534;line-height:1.5">${mGood.replace('👍장점: ','')}</div></div>`:''}
-            ${mBad?`<div style="padding:8px 12px;background:#fef2f2;border-radius:8px;border-left:3px solid #dc2626"><div style="font-size:10px;font-weight:700;color:#b91c1c;margin-bottom:2px;letter-spacing:.5px">단점</div><div style="font-size:12px;color:#991b1b;line-height:1.5">${mBad.replace('👎단점: ','')}</div></div>`:''}
-            ${mWarn?`<div style="padding:8px 12px;background:#fffbeb;border-radius:8px;border-left:3px solid #f59e0b"><div style="font-size:10px;font-weight:700;color:#b45309;margin-bottom:2px;letter-spacing:.5px">주의사항</div><div style="font-size:12px;color:#92400e;line-height:1.5">${mWarn.replace('🚨주의사항: ','')}</div></div>`:''}
-            ${mEtc?`<div style="padding:8px 12px;background:var(--gray-50);border-radius:8px;border-left:3px solid var(--gray-300)"><div style="font-size:10px;font-weight:700;color:var(--gray-400);margin-bottom:2px;letter-spacing:.5px">기타</div><div style="font-size:12px;color:var(--gray-600);line-height:1.5">${mEtc.replace('🎸기타: ','')}</div></div>`:''}
-          </div>`:''}
+          <div style="background:var(--gray-50);border-radius:10px;padding:10px 14px;flex:1">
+            <div style="font-size:10px;font-weight:700;color:var(--gray-400);letter-spacing:.5px;margin-bottom:8px">메모</div>
+            ${mGood||mBad||mWarn||mEtc?`<div style="display:flex;flex-direction:column;gap:6px">
+              ${mGood?`<div style="padding:8px 12px;background:#f0fdf4;border-radius:8px;border-left:3px solid #16a34a"><div style="font-size:10px;font-weight:700;color:#15803d;margin-bottom:2px;letter-spacing:.5px">장점</div><div style="font-size:12px;color:#166534;line-height:1.5">${mGood.replace('👍장점: ','')}</div></div>`:''}
+              ${mBad?`<div style="padding:8px 12px;background:#fef2f2;border-radius:8px;border-left:3px solid #dc2626"><div style="font-size:10px;font-weight:700;color:#b91c1c;margin-bottom:2px;letter-spacing:.5px">단점</div><div style="font-size:12px;color:#991b1b;line-height:1.5">${mBad.replace('👎단점: ','')}</div></div>`:''}
+              ${mWarn?`<div style="padding:8px 12px;background:#fffbeb;border-radius:8px;border-left:3px solid #f59e0b"><div style="font-size:10px;font-weight:700;color:#b45309;margin-bottom:2px;letter-spacing:.5px">주의사항</div><div style="font-size:12px;color:#92400e;line-height:1.5">${mWarn.replace('🚨주의사항: ','')}</div></div>`:''}
+              ${mEtc?`<div style="padding:8px 12px;background:#fff;border-radius:8px;border-left:3px solid var(--gray-300)"><div style="font-size:10px;font-weight:700;color:var(--gray-400);margin-bottom:2px;letter-spacing:.5px">기타</div><div style="font-size:12px;color:var(--gray-600);line-height:1.5">${mEtc.replace('🎸기타: ','')}</div></div>`:''}
+            </div>`:`<div style="color:var(--gray-300);font-size:12px;padding:16px 0;text-align:center">메모가 없습니다<br><span style="font-size:11px">수정 버튼으로 메모를 추가할 수 있어요</span></div>`}
+          </div>
         </div>
 
         <!-- 세로 구분선 -->
