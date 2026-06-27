@@ -1703,6 +1703,20 @@ function renderProperties(){
     const badges=[cr.subway?'역세권':'',cr.infra?'인프라':'',cr.school?'학군':'',cr.brand?'브랜드':'',cr.newbuild?'신축':'',cr.large?'대단지':''].filter(Boolean);
 
     const row=(label,val)=>val?`<div style="display:flex;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--gray-100)"><span style="width:76px;font-size:11px;color:var(--gray-400);flex-shrink:0">${label}</span><span style="font-size:13px;color:var(--gray-800);font-weight:500">${val}</span></div>`:'';
+    // 부대비용 항목 계산
+    const _m=Number(p.buyPrice||0), _a=Number(p.area||0);
+    const _rate=_m<=60000?0.01:_m<=90000?(((_m/10000)-6)*(2/3)+1)/100:0.03;
+    const _acquire=Math.round(_m*_rate);
+    const _edu=Math.round(_acquire*0.1);
+    const _broker=Math.round(_m*0.004);
+    const _stamp=_m>=100000?35:_m>=10000?15:0;
+    const _law=Math.max(50,Math.round(_m*0.0012));
+    const _total=_acquire+_edu+_broker+_stamp+_law;
+    const fmtW=v=>v?`${(v*10000).toLocaleString()}원`:'';
+    const costRow=(label,val,sub)=>`<div style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid #fed7aa">
+      <div><span style="font-size:12px;color:#92400e">${label}</span>${sub?`<span style="font-size:10px;color:#b45309;margin-left:5px">${sub}</span>`:''}</div>
+      <span style="font-size:12px;font-weight:600;color:#7c2d12">${fmtW(val)}</span></div>`;
+
     const detailHtml=expanded?`
       <div style="margin-top:12px;border-top:1px solid var(--gray-200);padding-top:14px">
 
@@ -1717,16 +1731,28 @@ function renderProperties(){
           ${row('동 / 층',(p.dong?p.dong+'동  ':'')+(p.hosu||''))}
         </div>
 
-        <div style="background:#fff7ed;border-radius:10px;padding:10px 14px;margin-bottom:12px">
-          <div style="display:flex;justify-content:space-between;align-items:baseline">
-            <span style="font-size:12px;color:var(--gray-500)">매매가</span>
-            <span style="font-size:17px;font-weight:700;color:var(--gray-900)">${fmt(p.buyPrice)||'-'}</span>
+        <div style="background:#fff7ed;border-radius:10px;padding:12px 14px;margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px">
+            <span style="font-size:12px;font-weight:700;color:#9a3412">매매가</span>
+            <span style="font-size:18px;font-weight:700;color:var(--gray-900)">${fmt(p.buyPrice)||'-'}</span>
           </div>
-          ${p.buyPrice?`<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:5px;padding-top:5px;border-top:1px dashed #fed7aa">
-            <span style="font-size:11px;color:#9a3412">부대비용 포함 추정</span>
-            <span style="font-size:14px;font-weight:700;color:#c2410c">약 ${fmt(Number(p.buyPrice)+estimateSideCost(p.buyPrice,p.area))}</span>
+          ${p.buyPrice&&_m?`<div style="border-top:1px dashed #fed7aa;padding-top:8px">
+            <div style="font-size:10px;font-weight:700;color:#b45309;margin-bottom:6px;letter-spacing:.5px">부대비용 내역</div>
+            ${costRow('취득세',_acquire,`(세율 ${(_rate*100).toFixed(1)}%)`)}
+            ${costRow('지방교육세',_edu,'(취득세×10%)')}
+            ${_broker?costRow('중개보수',_broker,'(0.4%)'):''}
+            ${_stamp?costRow('인지세',_stamp,_m>=100000?'(15만원 초과)':'(1억~10억)'):''}
+            ${costRow('법무사 추정',_law,'')}
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:7px;margin-top:2px">
+              <span style="font-size:12px;font-weight:700;color:#9a3412">부대비용 합계</span>
+              <span style="font-size:13px;font-weight:700;color:#c2410c">${fmtW(_total)}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:5px;border-top:2px solid #fed7aa;margin-top:5px">
+              <span style="font-size:12px;font-weight:700;color:#7c2d12">총 필요 금액</span>
+              <span style="font-size:16px;font-weight:700;color:#c2410c">약 ${fmt(_m+_total)}</span>
+            </div>
           </div>`:''}
-          ${p.rent?`<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:5px">
+          ${p.rent?`<div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:8px;padding-top:8px;border-top:1px dashed #fed7aa">
             <span style="font-size:11px;color:var(--gray-400)">월세</span>
             <span style="font-size:13px;font-weight:600;color:var(--gray-700)">${p.rent}만원 / 월</span>
           </div>`:''}
@@ -1734,18 +1760,12 @@ function renderProperties(){
 
         ${badges.length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:12px">${badges.map(b=>`<span style="font-size:11px;font-weight:600;background:#EBF3FE;color:#3182F6;padding:3px 10px;border-radius:20px">${b}</span>`).join('')}</div>`:''}
 
-        ${mGood||mBad||mWarn||mEtc?`<div style="display:flex;flex-direction:column;gap:7px;margin-bottom:14px">
+        ${mGood||mBad||mWarn||mEtc?`<div style="display:flex;flex-direction:column;gap:7px">
           ${mGood?`<div style="padding:9px 12px;background:#f0fdf4;border-radius:8px;border-left:3px solid #16a34a"><div style="font-size:10px;font-weight:700;color:#15803d;margin-bottom:3px;letter-spacing:.5px">장점</div><div style="font-size:12px;color:#166534;line-height:1.5">${mGood.replace('👍장점: ','')}</div></div>`:''}
           ${mBad?`<div style="padding:9px 12px;background:#fef2f2;border-radius:8px;border-left:3px solid #dc2626"><div style="font-size:10px;font-weight:700;color:#b91c1c;margin-bottom:3px;letter-spacing:.5px">단점</div><div style="font-size:12px;color:#991b1b;line-height:1.5">${mBad.replace('👎단점: ','')}</div></div>`:''}
           ${mWarn?`<div style="padding:9px 12px;background:#fffbeb;border-radius:8px;border-left:3px solid #f59e0b"><div style="font-size:10px;font-weight:700;color:#b45309;margin-bottom:3px;letter-spacing:.5px">주의사항</div><div style="font-size:12px;color:#92400e;line-height:1.5">${mWarn.replace('🚨주의사항: ','')}</div></div>`:''}
           ${mEtc?`<div style="padding:9px 12px;background:var(--gray-50);border-radius:8px;border-left:3px solid var(--gray-300)"><div style="font-size:10px;font-weight:700;color:var(--gray-400);margin-bottom:3px;letter-spacing:.5px">기타</div><div style="font-size:12px;color:var(--gray-600);line-height:1.5">${mEtc.replace('🎸기타: ','')}</div></div>`:''}
         </div>`:''}
-
-        <div style="display:flex;gap:6px">
-          <button class="btn-outline btn-sm" onclick="event.stopPropagation();editProperty('${p.id}')">✏️ 수정</button>
-          <button class="btn-outline btn-sm" onclick="event.stopPropagation();duplicateProperty('${p.id}')">📋 복제</button>
-          <button class="btn-danger btn-sm" onclick="event.stopPropagation();deleteProperty('${p.id}')">🗑 삭제</button>
-        </div>
       </div>`:'';
 
     return `
@@ -1759,6 +1779,9 @@ function renderProperties(){
           ${p.rooms?`<span style="color:var(--gray-400);font-size:11px">${p.rooms}</span>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:6px">
+          <button class="btn-outline btn-sm" onclick="event.stopPropagation();editProperty('${p.id}')" style="padding:2px 8px;font-size:12px">수정</button>
+          <button class="btn-outline btn-sm" onclick="event.stopPropagation();duplicateProperty('${p.id}')" style="padding:2px 8px;font-size:12px">복제</button>
+          <button class="btn-danger btn-sm" onclick="event.stopPropagation();deleteProperty('${p.id}')" style="padding:2px 8px;font-size:12px">삭제</button>
           <span style="font-size:12px;font-weight:700;color:#fff;background:${scoreColor};padding:2px 9px;border-radius:20px">${score}점</span>
           <span style="font-size:16px;font-weight:700;color:var(--gray-900)">${fmt(p.buyPrice)}</span>
           <span style="font-size:11px;color:var(--gray-400)">${expanded?'▲':'▼'}</span>
