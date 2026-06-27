@@ -1114,7 +1114,11 @@ async function loadFromCloud(){
       if(!data.assets) data.assets=[];
       if(!data.notes) data.notes=[];
       if(!data.complexInfo) data.complexInfo={};
-      if(!data.loanPlans) data.loanPlans=[];
+      if(!data.loanPlans || data.loanPlans.length===0){
+        const oldPlans=_storageGet('loan_plans_v1');
+        if(oldPlans){ try{ data.loanPlans=JSON.parse(oldPlans); }catch(e){ data.loanPlans=[]; } }
+        else { data.loanPlans=[]; }
+      }
       data.properties.forEach((p,i)=>{
         if(!p.createdAt) p.createdAt = new Date(Date.now() - (data.properties.length-i)*1000).toISOString();
         if(!p.updatedAt) p.updatedAt = p.createdAt;
