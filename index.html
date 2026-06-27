@@ -588,7 +588,7 @@
 
     <!-- 왼쪽: 대출 계산기 -->
     <div class="section loan-calc-section">
-      <div class="section-header"><div class="section-title">🧮 대출 계산기</div></div>
+      <div class="section-header"><div class="section-title">🧮 대출 계산기</div><button class="btn-outline btn-sm" onclick="clearLoanCalc()" style="font-size:12px">초기화</button></div>
 
       <div class="form-group">
         <label class="form-label">매매가 (만원 입력)</label>
@@ -2286,6 +2286,16 @@ document.getElementById('l-deposit').addEventListener('input', function(){
   calcLoan();
 });
 
+function clearLoanCalc(){
+  ['l-price','l-deposit','l-amount','l-rate'].forEach(id=>{
+    const el=document.getElementById(id); if(el){ el.value=''; if(el._manualInput!==undefined) el._manualInput=true; }
+  });
+  ['l-price-preview','l-deposit-preview','l-amount-preview','l-result-box'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.innerHTML='';
+  });
+  window._lastCalc=null;
+}
+
 function addLoanPlan(){
   const c = window._lastCalc;
   if(!c){ alert('먼저 계산을 완료해주세요.'); return; }
@@ -2348,18 +2358,20 @@ function renderLoanPlans(){
     return;
   }
   container.innerHTML = loanPlans.map(p => `
-    <div class="loan-plan-item">
+    <div class="loan-plan-item" draggable="true" data-lpid="${p.id}" style="cursor:grab">
       <div class="lpi-header">
-        <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-right:8px">
+          <span style="font-size:16px;color:var(--gray-400);cursor:grab;user-select:none">⠿</span>
+        </div>
+        <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:8px">
             <div class="lpi-title">대출 ${(p.amount/10000).toFixed(1)}억 · ${p.years}년</div>
             <span class="lpi-badge">${p.product}</span>
           </div>
           <div class="lpi-date">${p.date} · ${p.method} · 연${p.rate}%</div>
           ${p.buyPrice?`<div style="font-size:11px;color:var(--gray-500);margin-top:3px">매매가 ${(p.buyPrice/10000).toFixed(1)}억 · 자기자금 ${((p.deposit||0)/10000).toFixed(1)}억 · 대출 ${(p.amount/10000).toFixed(1)}억</div>`:''}
-
         </div>
-        <button class="btn-danger" onclick="deleteLoanPlan('${p.id}')">🗑</button>
+        <button class="btn-danger" onclick="event.stopPropagation();deleteLoanPlan('${p.id}')">🗑</button>
       </div>
       <div class="lpi-grid">
         <div class="lpi-cell">
@@ -2381,6 +2393,42 @@ function renderLoanPlans(){
       </div>
       <button class="lpi-schedule-btn" onclick="showSchedule('${p.id}')">📅 월별 상환 스케줄 보기</button>
     </div>`).join('');
+  initLoanPlanDrag();
+}
+
+function initLoanPlanDrag(){
+  const container=document.getElementById('loan-plan-list');
+  if(!container) return;
+  let dragEl=null, overEl=null;
+  container.querySelectorAll('.loan-plan-item').forEach(item=>{
+    item.addEventListener('dragstart',e=>{
+      dragEl=item;
+      item.style.opacity='0.4';
+      e.dataTransfer.effectAllowed='move';
+    });
+    item.addEventListener('dragend',()=>{
+      item.style.opacity='';
+      container.querySelectorAll('.loan-plan-item').forEach(i=>i.style.borderTop='');
+      dragEl=null; overEl=null;
+    });
+    item.addEventListener('dragover',e=>{
+      e.preventDefault();
+      if(item===dragEl) return;
+      container.querySelectorAll('.loan-plan-item').forEach(i=>i.style.borderTop='');
+      item.style.borderTop='2px solid var(--blue)';
+      overEl=item;
+    });
+    item.addEventListener('drop',e=>{
+      e.preventDefault();
+      if(!dragEl||dragEl===item) return;
+      const ids=[...container.querySelectorAll('.loan-plan-item')].map(i=>i.dataset.lpid);
+      const fromIdx=ids.indexOf(dragEl.dataset.lpid);
+      const toIdx=ids.indexOf(item.dataset.lpid);
+      const [moved]=loanPlans.splice(fromIdx,1);
+      loanPlans.splice(toIdx,0,moved);
+      saveLoanPlans(); renderLoanPlans();
+    });
+  });
 }
 
 function renderAssets(){
