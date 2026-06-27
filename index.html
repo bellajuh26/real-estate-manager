@@ -880,9 +880,15 @@
       <label class="form-label">아파트명 *</label>
       <input type="text" class="form-input" id="ci-name" placeholder="예: 래미안 강남포레">
     </div>
-    <div class="form-group">
-      <label class="form-label">지역 *</label>
-      <input type="text" class="form-input" id="ci-region" placeholder="예: 서울 강남구">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">지역 *</label>
+        <input type="text" class="form-input" id="ci-region" placeholder="예: 서울 강남구">
+      </div>
+      <div class="form-group">
+        <label class="form-label">주소</label>
+        <input type="text" class="form-input" id="ci-address" placeholder="예: 역삼동 123-45">
+      </div>
     </div>
     <div class="form-row" style="grid-template-columns:1fr 1fr 1fr 1fr">
       <div class="form-group">
@@ -1590,6 +1596,7 @@ function openComplexModal(name){
     const ci=data.complexInfo[name]||{};
     nameEl.value=name; nameEl.readOnly=true;
     document.getElementById('ci-region').value=ci.region||'';
+    document.getElementById('ci-address').value=ci.address||'';
     document.getElementById('ci-year').value=ci.year||'';
     document.getElementById('ci-units').value=ci.units||'';
     document.getElementById('ci-far').value=ci.far||'';
@@ -1597,7 +1604,7 @@ function openComplexModal(name){
     document.getElementById('complex-modal-title').textContent='단지 수정';
   } else {
     nameEl.value=''; nameEl.readOnly=false;
-    ['ci-region','ci-year','ci-units','ci-far','ci-floor'].forEach(i=>{ document.getElementById(i).value=''; });
+    ['ci-region','ci-address','ci-year','ci-units','ci-far','ci-floor'].forEach(i=>{ document.getElementById(i).value=''; });
     document.getElementById('complex-modal-title').textContent='단지 추가';
   }
   openModal('complex-modal');
@@ -1615,6 +1622,7 @@ function saveComplexInfo(){
   }
   data.complexInfo[name]={
     region,
+    address:document.getElementById('ci-address').value,
     year:document.getElementById('ci-year').value,
     units:document.getElementById('ci-units').value,
     far:document.getElementById('ci-far').value,
@@ -1858,12 +1866,12 @@ function renderComplexList(){
   if(!data.complexInfo) data.complexInfo={};
   // complexInfo에 등록된 단지 먼저 추가 (매물 없는 단지도 표시)
   Object.entries(data.complexInfo).forEach(([name,ci])=>{
-    map[name]={name, region:ci.region||'', year:ci.year||'', units:ci.units||'', far:ci.far||'', floor:ci.floor||'', items:[]};
+    map[name]={name, region:ci.region||'', address:ci.address||'', year:ci.year||'', units:ci.units||'', far:ci.far||'', floor:ci.floor||'', items:[]};
   });
   data.properties.forEach(p=>{
     const key=p.name||'기타';
     const ci=(data.complexInfo[key])||{};
-    if(!map[key]) map[key]={name:key, region:ci.region||p.region||'', year:ci.year||p.year||'', units:ci.units||p.units||'', far:ci.far||p.far||'', floor:ci.floor||p.floor||'', items:[]};
+    if(!map[key]) map[key]={name:key, region:ci.region||p.region||'', address:ci.address||p.location||'', year:ci.year||p.year||'', units:ci.units||p.units||'', far:ci.far||p.far||'', floor:ci.floor||p.floor||'', items:[]};
     map[key].items.push(p);
   });
 
@@ -1900,7 +1908,7 @@ function renderComplexList(){
             <button onclick="event.stopPropagation();deleteComplex('${safeName}')" style="background:none;border:none;cursor:pointer;color:var(--gray-300);font-size:14px;padding:0 2px;line-height:1" title="단지 삭제">🗑</button>
           </div>
         </div>
-        <div style="font-size:11px;color:var(--gray-500);margin-bottom:3px">📍 ${c.region||'지역 미입력'}</div>
+        <div style="font-size:11px;color:var(--gray-500);margin-bottom:3px">📍 ${c.region||'지역 미입력'}${c.address?' · '+c.address:''}</div>
         <div style="display:flex;gap:8px;font-size:11px;color:var(--gray-400)">
           ${c.year?`<span>🏗 ${c.year}년</span>`:''}
           ${c.units?`<span>🏘 ${Number(c.units).toLocaleString()}세대</span>`:''}
