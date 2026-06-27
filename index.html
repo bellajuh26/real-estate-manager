@@ -1807,6 +1807,12 @@ window.addEventListener('resize',()=>{
   }
 });
 
+// 터치 드래그 감지 (스크롤 중 카드 접힘 방지)
+let _touchStartY=0, _touchStartX=0, _touchMoved=false;
+function _cardTouchStart(e){ _touchStartX=e.touches[0].clientX; _touchStartY=e.touches[0].clientY; _touchMoved=false; }
+function _cardTouchMove(e){ if(Math.abs(e.touches[0].clientY-_touchStartY)>8||Math.abs(e.touches[0].clientX-_touchStartX)>8) _touchMoved=true; }
+function _cardTap(id){ if(!_touchMoved) togglePropDetail(id); }
+
 function togglePropDetail(id){
   expandedPropId = expandedPropId===id ? null : id;
   renderProperties();
@@ -2056,7 +2062,7 @@ function renderProperties(){
       </div>`:'';
 
     return `
-    <div class="property-item" data-pid="${p.id}" style="margin-bottom:10px;cursor:pointer" onclick="togglePropDetail('${p.id}')">
+    <div class="property-item" data-pid="${p.id}" style="margin-bottom:10px;cursor:pointer" ontouchstart="_cardTouchStart(event)" ontouchmove="_cardTouchMove(event)" ontouchend="_cardTap('${p.id}')" onclick="if(!('ontouchstart' in window))togglePropDetail('${p.id}')">
       <div class="prop-card-header">
         <div class="prop-card-left">
           ${heartSvg}
