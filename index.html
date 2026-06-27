@@ -2073,7 +2073,7 @@ function renderProperties(){
           ${p.rooms?`<span class="pc-rooms">${p.rooms}</span>`:''}
         </div>
         <div class="prop-card-right">
-          <div class="prop-card-actions">
+          <div class="prop-card-actions" ontouchstart="event.stopPropagation()" ontouchmove="event.stopPropagation()" ontouchend="event.stopPropagation()">
             <button class="btn-outline btn-sm" onclick="event.stopPropagation();editProperty('${p.id}')" style="padding:2px 8px;font-size:12px">수정</button>
             <button class="btn-outline btn-sm" onclick="event.stopPropagation();duplicateProperty('${p.id}')" style="padding:2px 8px;font-size:12px">복제</button>
             <button class="btn-danger btn-sm" onclick="event.stopPropagation();deleteProperty('${p.id}')" style="padding:2px 8px;font-size:12px">삭제</button>
