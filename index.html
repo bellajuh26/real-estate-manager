@@ -1629,6 +1629,23 @@ function saveMemoInline(propId){
 function togglePropDetail(id){
   expandedPropId = expandedPropId===id ? null : id;
   renderProperties();
+  if(expandedPropId) requestAnimationFrame(()=>matchMemoHeight(expandedPropId));
+}
+
+function matchMemoHeight(id){
+  const card=document.querySelector(`.property-item[data-pid="${id}"]`);
+  if(!card) return;
+  const cols=card.querySelectorAll('.detail-col');
+  if(cols.length<2) return;
+  const memoWrap=cols[0].querySelector('.memo-wrap');
+  if(!memoWrap) return;
+  // 오른쪽 컬럼 마지막 콘텐츠의 하단 위치
+  const rightLastEl=cols[1].lastElementChild;
+  if(!rightLastEl) return;
+  const rightBottom=rightLastEl.getBoundingClientRect().bottom;
+  const memoTop=memoWrap.getBoundingClientRect().top;
+  const memoH=Math.max(120, rightBottom-memoTop);
+  memoWrap.style.height=memoH+'px';
 }
 
 function renderComplexList(){
@@ -1764,7 +1781,7 @@ function renderProperties(){
       <div style="margin-top:12px;border-top:1px solid var(--gray-200);padding-top:14px;display:flex;gap:16px;align-items:stretch">
 
         <!-- 왼쪽: 단지·매물 정보 + 메모 -->
-        <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+        <div class="detail-col" style="flex:1;min-width:0;display:flex;flex-direction:column">
           <div style="background:var(--gray-50);border-radius:10px;padding:2px 14px 6px;margin-bottom:10px">
             ${row('위치',(p.region||'')+(p.location?' · '+p.location:''))}
             ${row('준공',p.year?p.year+'년':'')}
@@ -1776,7 +1793,7 @@ function renderProperties(){
             ${row('동 / 층',(p.dong?p.dong+'동 ':'')+(p.hosu||''))}
           </div>
           ${badges.length?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">${badges.map(b=>`<span style="font-size:11px;font-weight:600;background:#EBF3FE;color:#3182F6;padding:3px 10px;border-radius:20px">${b}</span>`).join('')}</div>`:''}
-          <div style="border-radius:10px;padding:10px 14px;flex:1;display:flex;flex-direction:column" onclick="event.stopPropagation()">
+          <div class="memo-wrap" style="border-radius:10px;padding:10px 14px;display:flex;flex-direction:column;overflow:hidden" onclick="event.stopPropagation()">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
               <span style="font-size:10px;font-weight:700;color:var(--gray-400);letter-spacing:.5px">메모</span>
               <span id="memo-status-${p.id}" style="font-size:10px;color:var(--gray-300)"></span>
@@ -1804,7 +1821,7 @@ function renderProperties(){
         <div style="width:1px;background:var(--gray-200);align-self:stretch;flex-shrink:0"></div>
 
         <!-- 오른쪽: 예상 부대비용 -->
-        <div style="flex:1;min-width:0">
+        <div class="detail-col" style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px">
             <span style="font-size:12px;font-weight:700;color:var(--gray-700)">🧾 예상 부대비용</span>
             <span style="font-size:10px;color:var(--gray-400)">(자동계산 · 실제와 다를 수 있음)</span>
@@ -1852,7 +1869,7 @@ function renderProperties(){
       </div>`:'';
 
     return `
-    <div class="property-item" style="margin-bottom:10px;cursor:pointer" onclick="togglePropDetail('${p.id}')">
+    <div class="property-item" data-pid="${p.id}" style="margin-bottom:10px;cursor:pointer" onclick="togglePropDetail('${p.id}')">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div style="display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--gray-900)">
           ${heartSvg}
