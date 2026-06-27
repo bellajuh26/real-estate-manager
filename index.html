@@ -1078,7 +1078,7 @@ function setSyncStatus(status, msg){
 }
 
 // ─── DATA ─────────────────────────────────────────────────────
-let data = { properties:[], assets:[], notes:[], complexInfo:{}, target:{budget:'',criteria:{subway:false,infra:false,school:false,brand:false,newbuild:false,large:false}} };
+let data = { properties:[], assets:[], notes:[], complexInfo:{}, loanPlans:[], target:{budget:'',criteria:{subway:false,infra:false,school:false,brand:false,newbuild:false,large:false}} };
 
 // localStorage 사용 불가 환경(미리보기 등) 대비 메모리 폴백
 const _memStore = {};
@@ -1091,7 +1091,10 @@ function save(){
 }
 function load(){
   const raw=_storageGet('asset_mgr_v3');
-  if(raw){ try{ data=JSON.parse(raw); if(!data.target) data.target={budget:'',criteria:{}}; if(!data.complexInfo) data.complexInfo={}; }catch(e){} }
+  if(raw){ try{ data=JSON.parse(raw); if(!data.target) data.target={budget:'',criteria:{}}; if(!data.complexInfo) data.complexInfo={}; if(!data.loanPlans) data.loanPlans=[]; }catch(e){} }
+  // 기존 loan_plans_v1에서 마이그레이션
+  const oldPlans = _storageGet('loan_plans_v1');
+  if(oldPlans && data.loanPlans.length===0){ try{ data.loanPlans=JSON.parse(oldPlans); }catch(e){} }
   data.properties.forEach((p,i)=>{
     if(!p.createdAt) p.createdAt = new Date(Date.now() - (data.properties.length-i)*1000).toISOString();
     if(!p.updatedAt) p.updatedAt = p.createdAt;
@@ -1111,6 +1114,7 @@ async function loadFromCloud(){
       if(!data.assets) data.assets=[];
       if(!data.notes) data.notes=[];
       if(!data.complexInfo) data.complexInfo={};
+      if(!data.loanPlans) data.loanPlans=[];
       data.properties.forEach((p,i)=>{
         if(!p.createdAt) p.createdAt = new Date(Date.now() - (data.properties.length-i)*1000).toISOString();
         if(!p.updatedAt) p.updatedAt = p.createdAt;
@@ -2168,9 +2172,9 @@ const LOAN_PRODUCTS = {
 
 let currentLoanProduct = 'custom';
 let selectedYear = 10;
-let loanPlans = JSON.parse(_storageGet('loan_plans_v1') || '[]');
-
-function saveLoanPlans(){ _storageSet('loan_plans_v1', JSON.stringify(loanPlans)); }
+// loanPlans는 data.loanPlans와 동기화 (클라우드 동기화 대응)
+function getLoanPlans(){ return data.loanPlans||(data.loanPlans=[]); }
+function saveLoanPlans(){ save(); }
 
 function selectLoanProduct(key){
   currentLoanProduct = key;
@@ -2316,27 +2320,27 @@ function addLoanPlan(){
     totalPayment: Math.round(c.totalPayment / 10000),
     schedule: c.schedule
   };
-  loanPlans.unshift(plan);
+  getLoanPlans().unshift(plan);
   saveLoanPlans();
   renderLoanPlans();
 }
 
 function deleteLoanPlan(id){
   showDelModal('이 납입 계획을 삭제할까요?', '삭제하면 복구할 수 없습니다.', ()=>{
-    loanPlans = loanPlans.filter(p => p.id !== id);
+    data.loanPlans = getLoanPlans().filter(p => p.id !== id);
     saveLoanPlans(); renderLoanPlans();
   });
 }
 
 function clearLoanPlans(){
-  if(loanPlans.length === 0) return;
+  if(getLoanPlans().length === 0) return;
   showDelModal('납입 계획을 모두 삭제할까요?', '삭제하면 복구할 수 없습니다.', ()=>{
-    loanPlans = []; saveLoanPlans(); renderLoanPlans();
+    data.loanPlans = []; saveLoanPlans(); renderLoanPlans();
   });
 }
 
 function showSchedule(id){
-  const plan = loanPlans.find(p => p.id === id); if(!plan) return;
+  const plan = getLoanPlans().find(p => p.id === id); if(!plan) return;
   const sec = document.getElementById('loan-schedule-section');
   sec.style.display = 'block';
   const tbody = document.getElementById('loan-schedule-tbody');
@@ -2353,6 +2357,7 @@ function showSchedule(id){
 
 function renderLoanPlans(){
   const container = document.getElementById('loan-plan-list'); if(!container) return;
+  const loanPlans = getLoanPlans();
   if(loanPlans.length === 0){
     container.innerHTML = `<div class="empty-state"><div class="empty-icon">📊</div><div class="empty-text">계산 후 저장하면 여기에 기록됩니다</div></div>`;
     return;
@@ -2424,8 +2429,9 @@ function initLoanPlanDrag(){
       const ids=[...container.querySelectorAll('.loan-plan-item')].map(i=>i.dataset.lpid);
       const fromIdx=ids.indexOf(dragEl.dataset.lpid);
       const toIdx=ids.indexOf(item.dataset.lpid);
-      const [moved]=loanPlans.splice(fromIdx,1);
-      loanPlans.splice(toIdx,0,moved);
+      const plans=getLoanPlans();
+      const [moved]=plans.splice(fromIdx,1);
+      plans.splice(toIdx,0,moved);
       saveLoanPlans(); renderLoanPlans();
     });
   });
