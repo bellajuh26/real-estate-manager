@@ -1673,7 +1673,7 @@ function duplicateProperty(id){
   const p = data.properties.find(x=>x.id===id); if(!p) return;
   const maxTs = Math.max(...data.properties.map(x=>new Date(x.createdAt||0).getTime()));
   const now = new Date(maxTs + 1).toISOString();
-  const copy = {...p, id:uid(), name:p.name+' (복사)', date:today(), createdAt:now, updatedAt:now};
+  const copy = {...p, id:uid(), date:today(), createdAt:now, updatedAt:now};
   data.properties.unshift(copy);
   save(); renderAll();
 }
@@ -1752,7 +1752,7 @@ function deleteComplex(name){
 }
 
 // 매물 상세 토글
-let expandedPropId=null;
+const expandedPropIds=new Set();
 const _memoTimers={};
 function debounceMemoSave(propId){
   const status=document.getElementById('memo-status-'+propId);
@@ -1814,9 +1814,10 @@ function _cardTouchMove(e){ if(Math.abs(e.touches[0].clientY-_touchStartY)>8||Ma
 function _cardTap(id){ if(!_touchMoved) togglePropDetail(id); }
 
 function togglePropDetail(id){
-  expandedPropId = expandedPropId===id ? null : id;
+  if(expandedPropIds.has(id)) expandedPropIds.delete(id);
+  else expandedPropIds.add(id);
   renderProperties();
-  if(expandedPropId) requestAnimationFrame(()=>matchMemoHeight(expandedPropId));
+  if(expandedPropIds.has(id)) requestAnimationFrame(()=>matchMemoHeight(id));
 }
 
 function matchMemoHeight(id){
@@ -1922,7 +1923,7 @@ function renderProperties(){
   }
   container.innerHTML=filtered.map(p=>{
     const score=scoreProperty(p);
-    const expanded=expandedPropId===p.id;
+    const expanded=expandedPropIds.has(p.id);
     const heartSvg=p.status==='관심'?'<svg width="13" height="13" viewBox="0 0 32 32" fill="none"><path d="M16 27.5C16 27.5 3 19.5 3 10.5C3 7.46 5.46 5 8.5 5C10.74 5 12.7 6.3 13.7 8.2C14.1 9 15.1 9 15.5 8.2C16.5 6.3 18.46 5 20.7 5C23.54 5 26 7.46 26 10.5C26 19.5 16 27.5 16 27.5Z" fill="#F04452"/></svg> ':'';
     const scoreColor=score>=80?'#3182F6':score>=60?'#16a34a':'#9ca3af';
 
