@@ -1835,13 +1835,14 @@ function renderComplexList(){
 
   // 단지별 그룹핑 (complexInfo 포함)
   const map={};
+  if(!data.complexInfo) data.complexInfo={};
   // complexInfo에 등록된 단지 먼저 추가 (매물 없는 단지도 표시)
-  Object.entries(data.complexInfo||{}).forEach(([name,ci])=>{
+  Object.entries(data.complexInfo).forEach(([name,ci])=>{
     map[name]={name, region:ci.region||'', year:ci.year||'', units:ci.units||'', far:ci.far||'', floor:ci.floor||'', items:[]};
   });
   data.properties.forEach(p=>{
     const key=p.name||'기타';
-    const ci=data.complexInfo[key]||{};
+    const ci=(data.complexInfo[key])||{};
     if(!map[key]) map[key]={name:key, region:ci.region||p.region||'', year:ci.year||p.year||'', units:ci.units||p.units||'', far:ci.far||p.far||'', floor:ci.floor||p.floor||'', items:[]};
     map[key].items.push(p);
   });
