@@ -334,14 +334,9 @@
   .job-dday.soon { color:var(--amber); }
   .job-dday.ok { color:var(--green); }
   .job-empty { text-align:center; padding:60px 20px; color:var(--gray-400); font-size:14px; }
-  .resume-section { background:var(--white); border:1px solid var(--gray-200); border-radius:var(--radius-lg); padding:24px; margin-bottom:16px; }
-  .resume-section-title { font-size:15px; font-weight:700; color:var(--gray-900); margin-bottom:16px; }
   .benefit-tags-select { display:flex; flex-wrap:wrap; gap:8px; }
   .benefit-tag-btn { padding:6px 14px; border-radius:20px; border:1.5px solid var(--gray-200); background:none; font-size:13px; color:var(--gray-600); cursor:pointer; transition:all 0.15s; font-family:inherit; }
   .benefit-tag-btn.selected { border-color:var(--blue); background:var(--blue-light); color:var(--blue); font-weight:600; }
-  .job-sub-tabs { display:flex; gap:0; border-bottom:2px solid var(--gray-200); margin-bottom:20px; }
-  .job-sub-tab { padding:10px 20px; border:none; background:none; font-size:14px; font-weight:500; color:var(--gray-500); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-2px; transition:all 0.15s; font-family:inherit; }
-  .job-sub-tab.active { color:var(--blue); border-bottom-color:var(--blue); font-weight:700; }
   @media(max-width:900px){
     .job-stats{grid-template-columns:repeat(2,1fr)}
     .job-table-head,.job-row{grid-template-columns:2fr 90px 120px 1fr 80px 90px}
@@ -761,11 +756,6 @@
 
 <!-- PAGE: 채용공고 -->
 <div id="page-jobs" class="page">
-  <div class="job-sub-tabs">
-    <button class="job-sub-tab active" onclick="switchJobTab('list')">📋 채용공고</button>
-    <button class="job-sub-tab" onclick="switchJobTab('resume')">👤 내 프로필</button>
-  </div>
-
   <!-- 채용공고 리스트 뷰 -->
   <div id="job-list-view">
     <div class="job-stats" id="job-stats"></div>
@@ -799,46 +789,6 @@
     </div>
   </div>
 
-  <!-- 내 프로필 뷰 -->
-  <div id="job-resume-view" style="display:none">
-    <div class="resume-section">
-      <div class="resume-section-title">기본 정보</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">이름</label>
-          <input class="form-input" id="r-name" placeholder="이름 입력">
-        </div>
-        <div class="form-group">
-          <label class="form-label">경력 (년)</label>
-          <input class="form-input" type="number" id="r-career" placeholder="예: 3">
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">희망 연봉 최소 (만원)</label>
-          <input class="form-input" type="number" id="r-sal-min" placeholder="예: 5000">
-        </div>
-        <div class="form-group">
-          <label class="form-label">희망 연봉 최대 (만원)</label>
-          <input class="form-input" type="number" id="r-sal-max" placeholder="예: 8000">
-        </div>
-      </div>
-    </div>
-    <div class="resume-section">
-      <div class="resume-section-title">보유 스킬 (쉼표로 구분)</div>
-      <input class="form-input" id="r-skills" placeholder="예: React, TypeScript, Node.js">
-    </div>
-    <div class="resume-section">
-      <div class="resume-section-title">선호 복지 조건 <span style="font-size:12px;font-weight:400;color:var(--gray-500)">(선택하면 매칭 점수에 반영)</span></div>
-      <div class="benefit-tags-select" id="r-benefits-select"></div>
-    </div>
-    <div class="resume-section">
-      <div class="resume-section-title">선호 회사 유형</div>
-      <div class="benefit-tags-select" id="r-type-select"></div>
-    </div>
-    <div style="margin-top:8px">
-      <button class="btn-primary" style="padding:12px 28px;font-size:14px" onclick="saveResume()">프로필 저장</button>
-    </div>
   </div>
 </div>
 
@@ -2878,15 +2828,6 @@ const ALL_BENEFITS = ['재택근무','유연근무','스톡옵션','식대지원
 const ALL_TYPES = ['대기업','스타트업','외국계','중소기업'];
 let _jobFilter = '전체';
 
-function switchJobTab(tab){
-  document.getElementById('job-list-view').style.display = tab==='list' ? '' : 'none';
-  document.getElementById('job-resume-view').style.display = tab==='resume' ? '' : 'none';
-  document.querySelectorAll('.job-sub-tab').forEach((el,i)=>{
-    el.classList.toggle('active', (i===0&&tab==='list')||(i===1&&tab==='resume'));
-  });
-  if(tab==='resume') renderResumeForm();
-}
-
 function setJobFilter(f){
   _jobFilter = f;
   document.querySelectorAll('.job-ftab').forEach(el=>el.classList.toggle('active', el.dataset.filter===f));
@@ -3071,31 +3012,6 @@ function deleteJob(){
   save(); closeModal('job-modal'); renderJobs();
 }
 
-function renderResumeForm(){
-  const r = data.resume||{};
-  document.getElementById('r-name').value = r.name||'';
-  document.getElementById('r-career').value = r.career||'';
-  document.getElementById('r-sal-min').value = r.salMin||'';
-  document.getElementById('r-sal-max').value = r.salMax||'';
-  document.getElementById('r-skills').value = r.skills||'';
-  const bSel = document.getElementById('r-benefits-select');
-  bSel.innerHTML = ALL_BENEFITS.map(b=>`<button type="button" class="benefit-tag-btn${(r.benefits||[]).includes(b)?' selected':''}" onclick="toggleBenefitTag(this,'r-benefits-select')">${b}</button>`).join('');
-  const tSel = document.getElementById('r-type-select');
-  tSel.innerHTML = ALL_TYPES.map(t=>`<button type="button" class="benefit-tag-btn${(r.preferTypes||[]).includes(t)?' selected':''}" onclick="toggleBenefitTag(this,'r-type-select')">${t}</button>`).join('');
-}
-
-function saveResume(){
-  data.resume = {
-    name: document.getElementById('r-name').value.trim(),
-    career: document.getElementById('r-career').value,
-    salMin: document.getElementById('r-sal-min').value,
-    salMax: document.getElementById('r-sal-max').value,
-    skills: document.getElementById('r-skills').value.trim(),
-    benefits: getSelectedBenefits('r-benefits-select'),
-    preferTypes: getSelectedBenefits('r-type-select')
-  };
-  save(); alert('프로필이 저장됐습니다. 매칭 점수가 업데이트됩니다.'); switchJobTab('list');
-}
 </script>
 </body>
 </html>
