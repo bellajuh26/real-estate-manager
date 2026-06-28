@@ -1405,6 +1405,7 @@ function areaStr(sqm){
 }
 function today(){ return new Date().toLocaleDateString('ko-KR',{year:'numeric',month:'2-digit',day:'2-digit'}); }
 function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
 // ─── PYEONG PREVIEW ────────────────────────────────────────────
 // ─── PRICE PARSING ─────────────────────────────────────────────
@@ -1684,8 +1685,8 @@ function renderRankCards(){
         <span class="rank-item-score-badge">${p.score}점</span>
       </div>
       <div>
-        <div class="rank-item-name">${p.name}</div>
-        <div class="rank-item-loc">📍 ${p.region||''} ${p.location||''}</div>
+        <div class="rank-item-name">${esc(p.name)}</div>
+        <div class="rank-item-loc">📍 ${esc(p.region||'')} ${esc(p.location||'')}</div>
       </div>
       <div>
         <div class="rank-item-price">${fmt(p.curPrice||p.buyPrice)}${inBudget?` <span style="font-size:10px;background:#E6FAF6;color:#00B493;padding:1px 7px;border-radius:10px;font-weight:700;vertical-align:middle">예산내</span>`:''}</div>
@@ -1711,13 +1712,13 @@ function renderDashHeartList(){
     const y=pct(p.buyPrice,p.curPrice);
     return `
     <div class="heart-card">
-      <div class="heart-card-name">❤️ ${p.name}</div>
-      <div class="heart-card-sub">${p.region||''} ${p.location?'· '+p.location:''}</div>
-      <div class="heart-card-sub">${p.type}${p.year?' · '+p.year+'년':''}${p.units?' · '+Number(p.units).toLocaleString()+'세대':''}</div>
+      <div class="heart-card-name">❤️ ${esc(p.name)}</div>
+      <div class="heart-card-sub">${esc(p.region||'')} ${p.location?'· '+esc(p.location):''}</div>
+      <div class="heart-card-sub">${esc(p.type)}${p.year?' · '+esc(p.year)+'년':''}${p.units?' · '+Number(p.units).toLocaleString()+'세대':''}</div>
       <div class="heart-card-price">${fmt(p.curPrice||p.buyPrice)}</div>
       <div class="heart-card-area">${p.area?`${p.area}㎡ (${sqmToPyeong(p.area)}평)`:''} ${y!==null?`<span style="color:${parseFloat(y)>=0?'var(--green)':'var(--red)'};font-weight:600">${parseFloat(y)>=0?'▲':'▼'}${Math.abs(y)}%</span>`:''}</div>
       ${tags?`<div class="heart-card-tags">${tags}</div>`:''}
-      ${p.memo?`<div style="font-size:11px;color:var(--gray-500);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 ${p.memo}</div>`:''}
+      ${p.memo?`<div style="font-size:11px;color:var(--gray-500);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📝 ${esc(p.memo)}</div>`:''}
     </div>`;
   }).join('')}</div>`;
 }
@@ -1904,16 +1905,16 @@ function renderDashPropTable(){
     const score = scoreProperty(p);
     const memo=p.memo||'';
     return `<tr>
-      <td><div class="pt-name">${p.name}</div><span class="pt-badge" style="background:${color}18;color:${color}">${p.type}</span></td>
-      <td><div style="font-size:13px;font-weight:600">${p.region||'-'}</div><div class="pt-addr">${p.location||''}</div></td>
+      <td><div class="pt-name">${esc(p.name)}</div><span class="pt-badge" style="background:${color}18;color:${color}">${esc(p.type)}</span></td>
+      <td><div style="font-size:13px;font-weight:600">${esc(p.region||'-')}</div><div class="pt-addr">${esc(p.location||'')}</div></td>
       <td style="color:var(--gray-700);white-space:nowrap">${yr}</td>
       <td style="color:var(--gray-700);white-space:nowrap">${units}</td>
       <td style="color:var(--gray-700);white-space:nowrap">${far}</td>
       <td class="pt-area">${area}</td>
-      <td style="color:var(--gray-700)">${p.rooms||'-'}</td>
+      <td style="color:var(--gray-700)">${esc(p.rooms||'-')}</td>
       <td><div class="pt-price">${fmt(p.buyPrice)}</div>${p.buyPrice?`<div style="font-size:10px;color:var(--gray-500);margin-top:2px">부대비용 포함 약 <span style="color:var(--red);font-weight:700">${fmt(Number(p.buyPrice)+estimateSideCost(p.buyPrice,p.area))}</span></div>`:''}</td>
       <td class="pt-heart"><button onclick="toggleTableHeart('${p.id}')" style="background:none;border:none;cursor:pointer;padding:2px;line-height:0;border-radius:50%;transition:transform 0.15s" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">${heartSvg}</button></td>
-      <td><div class="pt-memo" title="${memo}">${memo||'-'}</div></td>
+      <td><div class="pt-memo" title="${esc(memo)}">${esc(memo)||'-'}</div></td>
     </tr>`;
   }).join('');
 }
@@ -2086,7 +2087,7 @@ function renderComplexList(){
     return `<div style="border-bottom:1px solid var(--gray-100);background:${active?'#EBF3FE':'#fff'};border-left:3px solid ${active?'var(--blue)':'transparent'}">
       <div onclick="selectedComplex='${safeName}';renderProperties();mobileShowPropPanel()" style="padding:12px 16px 10px;cursor:pointer">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">
-          <span style="font-size:13px;font-weight:700;color:${active?'var(--blue)':'var(--gray-900)'};line-height:1.3;flex:1">${isHeart?'❤️ ':''}${c.name}</span>
+          <span style="font-size:13px;font-weight:700;color:${active?'var(--blue)':'var(--gray-900)'};line-height:1.3;flex:1">${isHeart?'❤️ ':''}${esc(c.name)}</span>
           <div style="display:flex;align-items:center;gap:4px;margin-left:6px">
             ${c.items.length?`<span style="font-size:11px;font-weight:700;color:${scoreColor};background:${active?'#fff':'var(--gray-100)'};padding:2px 8px;border-radius:20px;white-space:nowrap">${best}점</span>`:''}
             <button onclick="event.stopPropagation();toggleComplexHeart('${safeName}')" style="background:none;border:none;cursor:pointer;font-size:15px;padding:0 2px;line-height:1;opacity:${isHeart?1:0.3}" title="관심 단지">${isHeart?'❤️':'🤍'}</button>
@@ -2094,9 +2095,9 @@ function renderComplexList(){
             <button onclick="event.stopPropagation();deleteComplex('${safeName}')" style="background:none;border:none;cursor:pointer;color:var(--gray-300);font-size:14px;padding:0 2px;line-height:1" title="단지 삭제">🗑</button>
           </div>
         </div>
-        <div style="font-size:11px;color:var(--gray-500);margin-bottom:3px">📍 ${c.region||'지역 미입력'}${c.address?' · '+c.address:''}</div>
+        <div style="font-size:11px;color:var(--gray-500);margin-bottom:3px">📍 ${esc(c.region||'지역 미입력')}${c.address?' · '+esc(c.address):''}</div>
         <div style="display:flex;gap:8px;font-size:11px;color:var(--gray-400)">
-          ${c.year?`<span>🏗 ${c.year}년</span>`:''}
+          ${c.year?`<span>🏗 ${esc(c.year)}년</span>`:''}
           ${c.units?`<span>🏘 ${Number(c.units).toLocaleString()}세대</span>`:''}
           <span style="margin-left:auto;color:var(--gray-500);font-weight:600">${c.items.length}건</span>
         </div>
@@ -2216,7 +2217,7 @@ function renderProperties(){
                 </div>
                 <textarea data-memo-key="${m.key}" data-prop-id="${p.id}" placeholder="입력하세요"
                   oninput="debounceMemoSave('${p.id}')"
-                  style="width:100%;box-sizing:border-box;border:none;background:var(--gray-50);resize:none;font-size:12px;color:${m.tc};line-height:1.6;padding:6px 12px 8px;outline:none;font-family:inherit;flex:1;min-height:30px">${m.val}</textarea>
+                  style="width:100%;box-sizing:border-box;border:none;background:var(--gray-50);resize:none;font-size:12px;color:${m.tc};line-height:1.6;padding:6px 12px 8px;outline:none;font-family:inherit;flex:1;min-height:30px">${esc(m.val)}</textarea>
               </div>`).join('')}
             </div>
           </div>
@@ -2654,13 +2655,13 @@ function renderLoanMemos(){
   container.innerHTML=loanMemos.map(m=>`
     <div class="loan-memo-item">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
-        <div style="font-size:13px;font-weight:700;color:var(--gray-900)">${m.title}</div>
+        <div style="font-size:13px;font-weight:700;color:var(--gray-900)">${esc(m.title)}</div>
         <div style="display:flex;gap:2px;flex-shrink:0;margin-left:8px">
           <button class="btn-ghost" style="padding:2px 6px;font-size:11px" onclick="openLoanMemoModal('${m.id}')">✏️</button>
           <button class="btn-danger" style="padding:2px 6px;font-size:11px" onclick="deleteLoanMemo('${m.id}')">🗑</button>
         </div>
       </div>
-      <div style="font-size:12px;color:var(--gray-600);line-height:1.6;white-space:pre-wrap">${m.body}</div>
+      <div style="font-size:12px;color:var(--gray-600);line-height:1.6;white-space:pre-wrap">${esc(m.body)}</div>
       <div style="font-size:11px;color:var(--gray-400);margin-top:6px">${m.date}</div>
     </div>`).join('');
 }
@@ -2701,13 +2702,13 @@ function renderNotes(){
   container.innerHTML=data.notes.map(n=>`
     <div class="note-item">
       <div class="note-header">
-        <div><div style="display:flex;align-items:center;gap:8px"><div class="note-title">${n.title}</div><span class="note-tag">${n.tag}</span></div><div class="note-date">${n.date}</div></div>
+        <div><div style="display:flex;align-items:center;gap:8px"><div class="note-title">${esc(n.title)}</div><span class="note-tag">${esc(n.tag)}</span></div><div class="note-date">${esc(n.date)}</div></div>
         <div style="display:flex;gap:4px">
           <button class="btn-ghost" onclick="editNote('${n.id}')">✏️</button>
           <button class="btn-danger" onclick="deleteNote('${n.id}')">🗑</button>
         </div>
       </div>
-      <div class="note-body">${n.body}</div>
+      <div class="note-body">${esc(n.body)}</div>
     </div>`).join('');
 }
 
@@ -2927,8 +2928,8 @@ function renderJobs(){
   rowsEl.innerHTML = jobs.map(j=>`
     <div class="job-row" onclick="openJobModal('${j.id}')">
       <div style="display:flex;align-items:center;gap:10px">
-        <div class="job-company-logo">${j.company.slice(0,2)}</div>
-        <div><div class="job-company-name">${j.company}</div><div class="job-position">${j.position}</div></div>
+        <div class="job-company-logo">${esc(j.company.slice(0,2))}</div>
+        <div><div class="job-company-name">${esc(j.company)}</div><div class="job-position">${esc(j.position)}</div></div>
       </div>
       <div><span class="job-type-badge jtype-${j.type}">${j.type}</span></div>
       <div class="job-salary">${j.salMin||j.salMax ? (j.salMin?j.salMin+'~':'')+''+(j.salMax?j.salMax:j.salMin)+'만원' : '-'}</div>
