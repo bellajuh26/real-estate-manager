@@ -2036,17 +2036,6 @@ function matchMemoHeight(id){
     ta.style.height='auto';
     ta.style.height=ta.scrollHeight+'px';
   });
-  const cols=card.querySelectorAll('.detail-col');
-  if(cols.length<2) return;
-  const memoWrap=cols[0].querySelector('.memo-wrap');
-  if(!memoWrap) return;
-  // 오른쪽 컬럼 마지막 콘텐츠의 하단 위치
-  const rightLastEl=cols[1].lastElementChild;
-  if(!rightLastEl) return;
-  const rightBottom=rightLastEl.getBoundingClientRect().bottom;
-  const memoTop=memoWrap.getBoundingClientRect().top;
-  const memoH=Math.max(120, rightBottom-memoTop);
-  memoWrap.style.height=memoH+'px';
 }
 
 function renderComplexList(){
