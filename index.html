@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>자산 관리 - 부동산 & 자산</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   :root {
@@ -302,6 +303,16 @@
   .drag-handle:hover { color:var(--gray-500); background:var(--gray-100); }
   .drag-handle:active { cursor:grabbing; }
 
+  /* LOGIN OVERLAY */
+  .login-overlay { position:fixed; inset:0; background:var(--gray-100); z-index:1000; display:flex; align-items:center; justify-content:center; }
+  .login-box { background:var(--white); border-radius:20px; padding:40px 36px; width:100%; max-width:380px; box-shadow:0 8px 40px rgba(0,0,0,0.12); }
+  .login-logo { font-size:32px; margin-bottom:8px; }
+  .login-title { font-size:22px; font-weight:700; color:var(--gray-900); margin-bottom:4px; }
+  .login-sub { font-size:13px; color:var(--gray-500); margin-bottom:28px; }
+  .login-error { font-size:12px; color:var(--red); background:var(--red-light); padding:10px 14px; border-radius:8px; margin-bottom:16px; display:none; }
+  .login-btn { width:100%; padding:13px; background:var(--blue); color:white; border:none; border-radius:10px; font-size:15px; font-weight:700; cursor:pointer; margin-top:8px; transition:background 0.15s; }
+  .login-btn:hover { background:var(--blue-dark); }
+
   /* DELETE CONFIRM MODAL */
   .del-modal-overlay { display:none; position:fixed; inset:0; background:rgba(25,31,40,0.5); z-index:300; align-items:center; justify-content:center; }
   .del-modal-overlay.open { display:flex; }
@@ -346,6 +357,25 @@
   </div>
 </div>
 
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">💰</div>
+    <div class="login-title">자산관리</div>
+    <div class="login-sub">로그인 후 이용할 수 있어요</div>
+    <div class="login-error" id="login-error"></div>
+    <div class="form-group">
+      <label class="form-label">이메일</label>
+      <input type="email" class="form-input" id="login-email" placeholder="이메일 입력" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">비밀번호</label>
+      <input type="password" class="form-input" id="login-pw" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">로그인</button>
+  </div>
+</div>
+
 <!-- DELETE CONFIRM MODAL -->
 <div class="del-modal-overlay" id="del-modal">
   <div class="del-modal">
@@ -370,9 +400,8 @@
   </div>
   <div class="nav-right-btns">
     <span id="sync-status" style="font-size:11px;font-weight:600;white-space:nowrap"></span>
-    <button id="sync-toggle-btn" onclick="toggleCloudSync()" class="sync-btn"></button>
-    <button onclick="copySyncCode()" class="sync-btn">내 코드</button>
-    <button onclick="enterSyncCode()" class="sync-btn blue">연결</button>
+    <span id="nav-user-email" style="font-size:11px;color:var(--gray-500);white-space:nowrap"></span>
+    <button onclick="doLogout()" class="sync-btn" style="color:var(--red)">로그아웃</button>
   </div>
 </nav>
 
@@ -977,109 +1006,96 @@
 </div>
 
 <script>
-// ─── SUPABASE SYNC ──────────────────────────────────────────────
+// ─── SUPABASE AUTH ──────────────────────────────────────────────
 const SUPABASE_URL = 'https://nlxowmscueqcldfmtgul.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_eS-2n1o0IiZBLWtlPxH8Pg__iIYVQn9';
 const SYNC_TABLE = 'asset_mgr_data';
+const _sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// 기기 식별용 사용자 ID (없으면 생성해서 localStorage에 보관)
-function getDeviceUserId(){
-  // URL 해시(#코드)에 코드가 있으면 그것을 최우선으로 사용
-  const hashCode = (location.hash || '').replace('#','').trim();
-  if(hashCode && hashCode.startsWith('user_')){
-    localStorage.setItem('asset_mgr_user_id', hashCode);
-    return hashCode;
-  }
-  let id = localStorage.getItem('asset_mgr_user_id');
-  if(!id){
-    id = 'user_' + Date.now().toString(36) + Math.random().toString(36).slice(2,10);
-    localStorage.setItem('asset_mgr_user_id', id);
-  }
-  return id;
+// ─── 로그인 / 로그아웃 ──────────────────────────────────────────
+async function doLogin(){
+  const email = document.getElementById('login-email').value.trim();
+  const pw    = document.getElementById('login-pw').value;
+  const errEl = document.getElementById('login-error');
+  if(!email||!pw){ errEl.textContent='이메일과 비밀번호를 입력해주세요'; errEl.style.display='block'; return; }
+  errEl.style.display='none';
+  const btn = document.querySelector('.login-btn');
+  btn.textContent='로그인 중...'; btn.disabled=true;
+  const {error} = await _sb.auth.signInWithPassword({email, password:pw});
+  btn.textContent='로그인'; btn.disabled=false;
+  if(error){ errEl.textContent='이메일 또는 비밀번호가 올바르지 않아요'; errEl.style.display='block'; return; }
+  document.getElementById('login-overlay').style.display='none';
+  await initAfterLogin();
 }
 
-// URL에 코드가 있으면 동기화를 자동으로 켠다 (즐겨찾기로 재방문한 경우)
-function hasSyncCodeInUrl(){
-  const hashCode = (location.hash || '').replace('#','').trim();
-  return hashCode && hashCode.startsWith('user_');
+async function doLogout(){
+  await _sb.auth.signOut();
+  localStorage.removeItem('asset_mgr_v3');
+  location.reload();
 }
 
-async function cloudLoad(userId){
-  const res = await fetch(`${SUPABASE_URL}/rest/v1/${SYNC_TABLE}?user_id=eq.${userId}&select=payload`, {
-    headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
-  });
+async function checkSession(){
+  const {data:{session}} = await _sb.auth.getSession();
+  if(session){
+    document.getElementById('login-overlay').style.display='none';
+    await initAfterLogin();
+  }
+  // 세션 없으면 로그인 오버레이 표시 (기본 표시 상태)
+}
+
+async function initAfterLogin(){
+  const {data:{user}} = await _sb.auth.getUser();
+  if(user){
+    const emailEl = document.getElementById('nav-user-email');
+    if(emailEl) emailEl.textContent = user.email;
+  }
+  load();
+  await loadFromCloud();
+}
+
+// ─── 클라우드 저장/불러오기 (Auth 토큰 사용) ────────────────────
+async function getAuthHeader(){
+  const {data:{session}} = await _sb.auth.getSession();
+  if(!session) return null;
+  return { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${session.access_token}`, 'Content-Type': 'application/json' };
+}
+
+async function cloudLoad(){
+  const headers = await getAuthHeader(); if(!headers) return null;
+  const {data:{user}} = await _sb.auth.getUser(); if(!user) return null;
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/${SYNC_TABLE}?user_id=eq.${user.id}&select=payload`, { headers });
   if(!res.ok) throw new Error(`불러오기 실패 (${res.status})`);
   const rows = await res.json();
   return rows.length > 0 ? rows[0].payload : null;
 }
 
-async function cloudSave(userId, payload){
+async function cloudSave(payload){
+  const headers = await getAuthHeader(); if(!headers) return;
+  const {data:{user}} = await _sb.auth.getUser(); if(!user) return;
   const res = await fetch(`${SUPABASE_URL}/rest/v1/${SYNC_TABLE}`, {
     method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'resolution=merge-duplicates,return=minimal'
-    },
-    body: JSON.stringify({ user_id: userId, payload: payload, updated_at: new Date().toISOString() })
+    headers: { ...headers, 'Prefer': 'resolution=merge-duplicates,return=minimal' },
+    body: JSON.stringify({ user_id: user.id, payload, updated_at: new Date().toISOString() })
   });
-  if(!res.ok){
-    const err = await res.text();
-    throw new Error(`저장 실패 (${res.status}): ${err.slice(0,150)}`);
-  }
-}
-
-// ─── SYNC ON/OFF TOGGLE ─────────────────────────────────────────
-function isCloudSyncEnabled(){
-  return localStorage.getItem('asset_mgr_sync_enabled') === 'true'; // 기본값: 꺼짐
-}
-function toggleCloudSync(){
-  const enabled = isCloudSyncEnabled();
-  localStorage.setItem('asset_mgr_sync_enabled', enabled ? 'false' : 'true');
-  updateSyncToggleBtn();
-  if(!enabled){
-    // 다시 켜는 경우: URL에 코드 반영 + 클라우드에서 최신 데이터 받아오기
-    const id = getDeviceUserId();
-    history.replaceState(null, '', location.pathname + '#' + id);
-    loadFromCloud();
-  } else {
-    setSyncStatus('off');
-  }
-}
-function updateSyncToggleBtn(){
-  const btn = document.getElementById('sync-toggle-btn');
-  if(!btn) return;
-  const enabled = isCloudSyncEnabled();
-  btn.textContent = enabled ? '☁️ 동기화 끄기' : '☁️ 동기화 켜기';
-  btn.style.color = enabled ? 'var(--gray-600)' : 'var(--blue)';
-  btn.style.background = enabled ? 'var(--gray-100)' : 'var(--blue-light)';
+  if(!res.ok){ const err = await res.text(); throw new Error(`저장 실패 (${res.status}): ${err.slice(0,100)}`); }
 }
 
 let _cloudSyncTimer = null;
 function scheduleCloudSync(){
-  if(!isCloudSyncEnabled()){ setSyncStatus('off'); return; }
   clearTimeout(_cloudSyncTimer);
   setSyncStatus('saving');
   _cloudSyncTimer = setTimeout(async()=>{
-    try{
-      await cloudSave(getDeviceUserId(), data);
-      setSyncStatus('saved');
-    }catch(e){
-      console.error('클라우드 저장 오류:', e);
-      setSyncStatus('error', e.message);
-    }
+    try{ await cloudSave(data); setSyncStatus('saved'); }
+    catch(e){ console.error('저장 오류:', e); setSyncStatus('error', e.message); }
   }, 1200);
 }
 
 function setSyncStatus(status, msg){
-  const el = document.getElementById('sync-status');
-  if(!el) return;
+  const el = document.getElementById('sync-status'); if(!el) return;
   if(status==='saving') el.innerHTML = `<span style="color:var(--gray-400)">☁️ 저장 중...</span>`;
   else if(status==='saved') el.innerHTML = `<span style="color:var(--green)">☁️ 동기화됨</span>`;
   else if(status==='loading') el.innerHTML = `<span style="color:var(--gray-400)">☁️ 불러오는 중...</span>`;
-  else if(status==='error') el.innerHTML = `<span style="color:var(--red)" title="${msg||''}">☁️ 동기화 오류</span>`;
-  else if(status==='off') el.innerHTML = `<span style="color:var(--gray-400)">📍 이 PC에만 저장 중</span>`;
+  else if(status==='error') el.innerHTML = `<span style="color:var(--red)" title="${msg||''}">☁️ 오류</span>`;
 }
 
 // ─── DATA ─────────────────────────────────────────────────────
@@ -1111,7 +1127,7 @@ function load(){
 async function loadFromCloud(){
   setSyncStatus('loading');
   try{
-    const cloud = await cloudLoad(getDeviceUserId());
+    const cloud = await cloudLoad();
     if(cloud){
       data = cloud;
       if(!data.target) data.target={budget:'',criteria:{}};
@@ -1120,6 +1136,7 @@ async function loadFromCloud(){
       if(!data.notes) data.notes=[];
       if(!data.loanMemos) data.loanMemos=[];
       if(!data.loanPlans) data.loanPlans=[];
+      if(!data.jobs) data.jobs=[];
       // 로컬 변수 동기화
       loanMemos = data.loanMemos;
       loanPlans = data.loanPlans;
@@ -1131,7 +1148,6 @@ async function loadFromCloud(){
       setSyncStatus('saved');
       renderAll();
     } else {
-      // 클라우드에 데이터 없으면 현재 로컬 데이터를 업로드
       setSyncStatus('saved');
       scheduleCloudSync();
     }
@@ -1139,34 +1155,6 @@ async function loadFromCloud(){
     console.error('클라우드 불러오기 오류:', e);
     setSyncStatus('error', e.message);
   }
-}
-
-function copySyncCode(){
-  const id = getDeviceUserId();
-  // 동기화를 켜두지 않으면 즐겨찾기로 돌아와도 의미 없으므로 함께 켠다
-  localStorage.setItem('asset_mgr_sync_enabled', 'true');
-  updateSyncToggleBtn();
-  scheduleCloudSync();
-
-  const bookmarkUrl = location.origin + location.pathname + '#' + id;
-  navigator.clipboard?.writeText(bookmarkUrl).then(()=>{
-    alert('이 주소를 복사했어요!\n\n' + bookmarkUrl + '\n\n📌 이 주소를 "즐겨찾기"에 추가해두세요.\n캐시가 삭제돼도 이 즐겨찾기로 들어오면 데이터가 자동으로 복원돼요.\n\n다른 기기에서 열어도 같은 데이터를 보게 돼요.');
-  }).catch(()=>{
-    prompt('아래 주소를 복사해서 즐겨찾기에 추가하세요:', bookmarkUrl);
-  });
-}
-
-function enterSyncCode(){
-  const code = prompt('다른 기기의 동기화 코드를 입력하세요:\n(붙여넣은 주소에 #user_... 부분만 입력해도 됩니다)');
-  if(!code || !code.trim()) return;
-  // URL 전체를 붙여넣은 경우 코드만 추출
-  let clean = code.trim();
-  if(clean.includes('#')) clean = clean.split('#')[1] || clean;
-  localStorage.setItem('asset_mgr_user_id', clean);
-  localStorage.setItem('asset_mgr_sync_enabled', 'true');
-  history.replaceState(null, '', location.pathname + '#' + clean);
-  updateSyncToggleBtn();
-  loadFromCloud();
 }
 
 // ─── MOBILE DRAWER ─────────────────────────────────────────────
@@ -2490,18 +2478,11 @@ if(data.properties.length===0&&data.assets.length===0){
   ];
   save();
 }
+load();
 renderAll();
 
-// 즐겨찾기 URL(#코드)로 들어온 경우: 자동으로 동기화 켜고 클라우드 데이터 복원
-if(hasSyncCodeInUrl()){
-  localStorage.setItem('asset_mgr_sync_enabled', 'true');
-}
-updateSyncToggleBtn();
-if(isCloudSyncEnabled()){
-  loadFromCloud(); // 클라우드에 더 최신 데이터가 있으면 덮어쓰기
-} else {
-  setSyncStatus('off');
-}
+// 세션 확인 후 로그인 상태면 바로 진입
+checkSession();
 </script>
 </body>
 </html>
