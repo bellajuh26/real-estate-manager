@@ -2036,7 +2036,7 @@ function calcLoan(){
   document.getElementById('lr-total-interest').textContent = fmtW(totalInterest/10000);
   document.getElementById('lr-total-payment').textContent = fmtW(totalPayment/10000);
   // store for save
-  window._lastCalc = { amount, rate, method, months, selectedYear, schedule, firstPayment, totalInterest, totalPayment, product: currentLoanProduct };
+  window._lastCalc = { amount, rate, method, months, selectedYear, schedule, firstPayment, totalInterest, totalPayment, product: currentLoanProduct, price, deposit };
 }
 
 // 매뉴얼 입력 감지
@@ -2066,6 +2066,8 @@ function addLoanPlan(){
     date: today(),
     product: productLabel,
     amount: c.amount,
+    price: c.price || 0,
+    deposit: c.deposit || 0,
     rate: c.rate,
     method: methodLabel,
     years: c.selectedYear,
@@ -2120,25 +2122,26 @@ function renderLoanPlans(){
       <div class="lpi-header">
         <div>
           <div style="display:flex;align-items:center;gap:8px">
-            <div class="lpi-title">대출 ${p.amount.toLocaleString()}만원 · ${p.years}년</div>
+            <div class="lpi-title">대출 ${fmtPrice(p.amount)} · ${p.years}년</div>
             <span class="lpi-badge">${p.product}</span>
           </div>
           <div class="lpi-date">${p.date} · ${p.method} · 연${p.rate}%</div>
+          ${p.price||p.deposit ? `<div style="font-size:11px;color:var(--gray-500);margin-top:2px">${p.price?'매매가 '+fmtPrice(p.price):''}${p.price&&p.deposit?' · ':''}${p.deposit?'자기자금 '+fmtPrice(p.deposit):''}</div>` : ''}
         </div>
         <button class="btn-danger" onclick="deleteLoanPlan('${p.id}')">🗑</button>
       </div>
       <div class="lpi-grid">
         <div class="lpi-cell">
           <div class="lpi-cell-label">월 납입액 (1회차)</div>
-          <div class="lpi-cell-value blue">${p.firstPayment.toLocaleString()}만원</div>
+          <div class="lpi-cell-value blue">${fmtPrice(p.firstPayment)}</div>
         </div>
         <div class="lpi-cell">
           <div class="lpi-cell-label">총 납입액</div>
-          <div class="lpi-cell-value">${p.totalPayment.toLocaleString()}만원</div>
+          <div class="lpi-cell-value">${fmtPrice(p.totalPayment)}</div>
         </div>
         <div class="lpi-cell">
           <div class="lpi-cell-label">총 이자</div>
-          <div class="lpi-cell-value red">${p.totalInterest.toLocaleString()}만원</div>
+          <div class="lpi-cell-value red">${fmtPrice(p.totalInterest)}</div>
         </div>
         <div class="lpi-cell">
           <div class="lpi-cell-label">대출 기간</div>
