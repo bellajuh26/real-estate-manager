@@ -19,13 +19,42 @@
   }
   body { font-family: -apple-system,'Pretendard','Apple SD Gothic Neo',sans-serif; background:var(--gray-100); color:var(--gray-900); min-height:100vh; font-size:14px; }
 
-  /* NAV */
-  .nav { background:var(--white); border-bottom:1px solid var(--gray-200); position:sticky; top:0; z-index:100; padding:0 20px; display:flex; align-items:center; justify-content:space-between; height:56px; }
-  .nav-logo { font-size:18px; font-weight:700; color:var(--blue); letter-spacing:-0.5px; }
+  /* NAV - PC */
+  .nav { background:var(--white); border-bottom:1px solid var(--gray-200); position:sticky; top:0; z-index:100; padding:0 20px; display:flex; align-items:center; justify-content:space-between; height:56px; gap:8px; }
+  .nav-logo { font-size:18px; font-weight:700; color:var(--blue); letter-spacing:-0.5px; flex-shrink:0; }
   .nav-tabs { display:flex; gap:4px; }
-  .nav-tab { padding:7px 16px; border-radius:8px; cursor:pointer; font-size:14px; font-weight:500; color:var(--gray-600); border:none; background:none; transition:all 0.15s; }
+  .nav-tab { padding:7px 14px; border-radius:8px; cursor:pointer; font-size:13px; font-weight:500; color:var(--gray-600); border:none; background:none; transition:all 0.15s; white-space:nowrap; }
   .nav-tab.active { background:var(--blue-light); color:var(--blue); }
   .nav-tab:hover:not(.active) { background:var(--gray-100); }
+  .nav-right-btns { display:flex; align-items:center; gap:6px; flex-shrink:0; }
+  .sync-btn { background:var(--gray-100); border:none; border-radius:7px; padding:6px 10px; font-size:11px; font-weight:600; color:var(--gray-600); cursor:pointer; white-space:nowrap; }
+  .sync-btn.blue { background:var(--blue-light); color:var(--blue); }
+
+  /* 하단 탭바 - 모바일 전용 */
+  .bottom-tabbar { display:none; }
+
+  @media(max-width:768px){
+    .nav-tabs { display:none; }
+    .nav-right-btns { display:none; }
+    .nav-logo { font-size:16px; }
+    .page { padding:16px 12px 80px; } /* 하단 탭바 공간 확보 */
+
+    .bottom-tabbar {
+      display:flex; position:fixed; bottom:0; left:0; right:0; z-index:200;
+      background:var(--white); border-top:1px solid var(--gray-200);
+      padding:0; height:64px;
+      box-shadow:0 -4px 16px rgba(0,0,0,0.08);
+    }
+    .bottom-tab {
+      flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:3px; border:none; background:none; cursor:pointer;
+      color:var(--gray-400); font-size:10px; font-weight:500;
+      transition:all 0.15s; padding:8px 4px;
+    }
+    .bottom-tab.active { color:var(--blue); }
+    .bottom-tab-icon { font-size:22px; line-height:1; }
+    .bottom-tab-label { font-size:10px; font-weight:600; }
+  }
 
   /* PAGES */
   .page { display:none; max-width:1280px; margin:0 auto; padding:24px 28px; }
@@ -332,13 +361,37 @@
     <button class="nav-tab" onclick="switchTab('notes')">메모</button>
     <button class="nav-tab" onclick="switchTab('jobs')">채용공고</button>
   </div>
-  <div style="display:flex;align-items:center;gap:10px">
+  <div class="nav-right-btns">
     <span id="sync-status" style="font-size:11px;font-weight:600;white-space:nowrap"></span>
-    <button id="sync-toggle-btn" onclick="toggleCloudSync()" style="background:var(--gray-100);border:none;border-radius:7px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--gray-600);cursor:pointer;white-space:nowrap"></button>
-    <button onclick="copySyncCode()" title="이 기기의 동기화 코드 복사" style="background:var(--gray-100);border:none;border-radius:7px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--gray-600);cursor:pointer;white-space:nowrap">내 코드</button>
-    <button onclick="enterSyncCode()" title="다른 기기 코드로 연결" style="background:var(--blue-light);border:none;border-radius:7px;padding:6px 10px;font-size:11px;font-weight:600;color:var(--blue);cursor:pointer;white-space:nowrap">연결</button>
+    <button id="sync-toggle-btn" onclick="toggleCloudSync()" class="sync-btn"></button>
+    <button onclick="copySyncCode()" class="sync-btn">내 코드</button>
+    <button onclick="enterSyncCode()" class="sync-btn blue">연결</button>
   </div>
 </nav>
+
+<!-- 모바일 하단 탭바 -->
+<div class="bottom-tabbar">
+  <button class="bottom-tab active" id="btab-dashboard" onclick="switchTab('dashboard')">
+    <span class="bottom-tab-icon">🏠</span>
+    <span class="bottom-tab-label">대시보드</span>
+  </button>
+  <button class="bottom-tab" id="btab-property" onclick="switchTab('property')">
+    <span class="bottom-tab-icon">🏢</span>
+    <span class="bottom-tab-label">매물</span>
+  </button>
+  <button class="bottom-tab" id="btab-asset" onclick="switchTab('asset')">
+    <span class="bottom-tab-icon">💳</span>
+    <span class="bottom-tab-label">대출</span>
+  </button>
+  <button class="bottom-tab" id="btab-notes" onclick="switchTab('notes')">
+    <span class="bottom-tab-icon">📝</span>
+    <span class="bottom-tab-label">메모</span>
+  </button>
+  <button class="bottom-tab" id="btab-jobs" onclick="switchTab('jobs')">
+    <span class="bottom-tab-icon">📋</span>
+    <span class="bottom-tab-label">채용공고</span>
+  </button>
+</div>
 
 <!-- DASHBOARD -->
 <div id="page-dashboard" class="page active">
@@ -1102,6 +1155,27 @@ function enterSyncCode(){
   loadFromCloud();
 }
 
+// ─── MOBILE DRAWER ─────────────────────────────────────────────
+function openDrawer(){
+  document.getElementById('mobile-drawer').classList.add('open');
+  // 동기화 상태 동기화
+  const s = document.getElementById('sync-status');
+  const ms = document.getElementById('mobile-sync-status');
+  if(s&&ms) ms.innerHTML = s.innerHTML;
+}
+function closeDrawer(){
+  document.getElementById('mobile-drawer').classList.remove('open');
+}
+function mobileSwitchTab(tab){
+  closeDrawer();
+  switchTab(tab);
+  // 모바일 탭 active 상태 업데이트
+  document.querySelectorAll('.mobile-nav-tab').forEach(t=>t.classList.remove('active'));
+  const tabs=['dashboard','property','asset','notes','jobs'];
+  const idx=tabs.indexOf(tab);
+  if(idx>=0) document.querySelectorAll('.mobile-nav-tab')[idx].classList.add('active');
+}
+
 // ─── TABS ─────────────────────────────────────────────────────
 function switchTab(tab){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1110,6 +1184,10 @@ function switchTab(tab){
   ['dashboard','property','asset','notes','jobs'].forEach((t,i)=>{
     if(t===tab) document.querySelectorAll('.nav-tab')[i].classList.add('active');
   });
+  // 하단 탭바 active 업데이트
+  document.querySelectorAll('.bottom-tab').forEach(t=>t.classList.remove('active'));
+  const btab = document.getElementById('btab-'+tab);
+  if(btab) btab.classList.add('active');
   renderAll();
 }
 
