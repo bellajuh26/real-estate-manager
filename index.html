@@ -257,6 +257,15 @@
   .tax-sub-value { font-size:12px; font-weight:600; color:var(--gray-700); }
   .tax-divider { height:1px; background:var(--gray-200); margin:6px 0; }
 
+  .job-status-badge { font-size:11px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap; }
+  .js-지원예정 { background:#EBF3FE; color:#3182F6; }
+  .js-지원완료 { background:#FFF8ED; color:#F5A623; }
+  .js-서류통과 { background:#E6FAF6; color:#00B493; }
+  .js-면접 { background:#F3E8FF; color:#9B59B6; }
+  .js-최종합격 { background:#E6FAF6; color:#00B493; }
+  .js-불합격 { background:#FFF0F1; color:#F04452; }
+  .job-deadline-urgent { color:#F04452; font-weight:700; }
+
   /* DELETE CONFIRM MODAL */
   .del-modal-overlay { display:none; position:fixed; inset:0; background:rgba(25,31,40,0.5); z-index:300; align-items:center; justify-content:center; }
   .del-modal-overlay.open { display:flex; }
@@ -321,6 +330,7 @@
     <button class="nav-tab" onclick="switchTab('property')">매물</button>
     <button class="nav-tab" onclick="switchTab('asset')">대출예산안</button>
     <button class="nav-tab" onclick="switchTab('notes')">메모</button>
+    <button class="nav-tab" onclick="switchTab('jobs')">채용공고</button>
   </div>
   <div style="display:flex;align-items:center;gap:10px">
     <span id="sync-status" style="font-size:11px;font-weight:600;white-space:nowrap"></span>
@@ -544,6 +554,122 @@
       <button class="btn-primary" onclick="openModal('note-modal')">+ 메모 추가</button>
     </div>
     <div id="note-list"></div>
+  </div>
+</div>
+
+<!-- JOBS -->
+<div id="page-jobs" class="page">
+  <!-- 통계 -->
+  <div class="summary-grid" id="job-summary"></div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-title">📋 채용공고 관리</div>
+      <button class="btn-primary" onclick="openModal('job-modal')">+ 공고 추가</button>
+    </div>
+    <!-- 검색/필터 -->
+    <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <select class="form-select" id="job-search-type" style="width:auto;min-width:100px;font-size:13px;padding:8px 12px">
+        <option value="company">회사명</option>
+        <option value="position">포지션</option>
+        <option value="type">유형</option>
+      </select>
+      <div class="search-bar" style="flex:1;margin-bottom:0">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="form-input" id="job-search" placeholder="검색..." oninput="renderJobs()">
+      </div>
+      <select class="form-select" id="job-status-filter" style="width:auto;min-width:100px;font-size:13px;padding:8px 12px" onchange="renderJobs()">
+        <option value="전체">전체 상태</option>
+        <option value="지원예정">지원예정</option>
+        <option value="지원완료">지원완료</option>
+        <option value="서류통과">서류통과</option>
+        <option value="면접">면접</option>
+        <option value="최종합격">최종합격</option>
+        <option value="불합격">불합격</option>
+      </select>
+      <select class="form-select" id="job-sort" style="width:auto;min-width:110px;font-size:13px;padding:8px 12px" onchange="renderJobs()">
+        <option value="recent">최신순</option>
+        <option value="deadline">마감일순</option>
+        <option value="salary">연봉순</option>
+      </select>
+    </div>
+    <!-- 테이블 -->
+    <div class="prop-table-wrap">
+      <table class="prop-table" id="job-table">
+        <thead>
+          <tr>
+            <th>회사명</th><th>포지션</th><th>유형</th><th>연봉</th><th>복지조건</th><th>상태</th><th>마감일</th><th>메모</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="job-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 채용공고 추가/수정 -->
+<div class="modal-overlay" id="job-modal">
+  <div class="modal" style="max-width:580px">
+    <button class="modal-close" onclick="closeModal('job-modal')">✕</button>
+    <div class="modal-title" id="job-modal-title">채용공고 추가</div>
+    <input type="hidden" id="j-edit-id">
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">회사명 *</label>
+        <input type="text" class="form-input" id="j-company" placeholder="(주)테크스타트업">
+      </div>
+      <div class="form-group">
+        <label class="form-label">포지션 *</label>
+        <input type="text" class="form-input" id="j-position" placeholder="프론트엔드 개발자">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">유형</label>
+        <select class="form-select" id="j-type">
+          <option>정규직</option><option>계약직</option><option>인턴</option><option>프리랜서</option><option>파트타임</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">상태</label>
+        <select class="form-select" id="j-status">
+          <option>지원예정</option><option>지원완료</option><option>서류통과</option><option>면접</option><option>최종합격</option><option>불합격</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">연봉 (만원)</label>
+        <input type="number" class="form-input" id="j-salary" placeholder="4500">
+      </div>
+      <div class="form-group">
+        <label class="form-label">마감일</label>
+        <input type="date" class="form-input" id="j-deadline">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">복지조건</label>
+      <input type="text" class="form-input" id="j-welfare" placeholder="재택근무, 스톡옵션, 식대 지원...">
+    </div>
+    <div class="form-group">
+      <label class="form-label">채용공고 내용</label>
+      <textarea class="form-textarea" id="j-desc" style="min-height:100px" placeholder="채용공고 내용을 붙여넣으세요."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">메모</label>
+      <textarea class="form-textarea" id="j-memo" placeholder="지원 전략, 특이사항 등"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn-primary" onclick="saveJob()">저장하기</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: 채용공고 상세보기 -->
+<div class="modal-overlay" id="job-detail-modal">
+  <div class="modal" style="max-width:620px">
+    <button class="modal-close" onclick="closeModal('job-detail-modal')">✕</button>
+    <div id="job-detail-content"></div>
   </div>
 </div>
 
@@ -896,7 +1022,7 @@ function setSyncStatus(status, msg){
 }
 
 // ─── DATA ─────────────────────────────────────────────────────
-let data = { properties:[], assets:[], notes:[], target:{budget:'',criteria:{subway:false,infra:false,school:false,brand:false,newbuild:false,large:false}} };
+let data = { properties:[], assets:[], notes:[], target:{budget:'',criteria:{subway:false,infra:false,school:false,brand:false,newbuild:false,large:false}}, loanMemos:[], loanPlans:[], jobs:[] };
 
 function save(){
   localStorage.setItem('asset_mgr_v3',JSON.stringify(data));
@@ -909,6 +1035,7 @@ function load(){
     if(!data.target) data.target={budget:'',criteria:{}};
     if(!data.loanMemos) data.loanMemos=[];
     if(!data.loanPlans) data.loanPlans=[];
+    if(!data.jobs) data.jobs=[];
   }catch(e){} }
   // 기존 데이터 마이그레이션: createdAt/updatedAt 없으면 채우기
   data.properties.forEach((p,i)=>{
@@ -980,7 +1107,7 @@ function switchTab(tab){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('page-'+tab).classList.add('active');
-  ['dashboard','property','asset','notes'].forEach((t,i)=>{
+  ['dashboard','property','asset','notes','jobs'].forEach((t,i)=>{
     if(t===tab) document.querySelectorAll('.nav-tab')[i].classList.add('active');
   });
   renderAll();
@@ -2066,7 +2193,158 @@ function renderDashboard(){
   renderDashPropTable();
 }
 
-function renderAll(){ renderDashboard(); renderProperties(); renderAssets(); renderNotes(); }
+// ─── JOBS ──────────────────────────────────────────────────────
+function saveJob(){
+  const id = document.getElementById('j-edit-id').value;
+  const company = document.getElementById('j-company').value.trim();
+  const position = document.getElementById('j-position').value.trim();
+  if(!company||!position){ alert('회사명과 포지션은 필수입니다.'); return; }
+  const obj = {
+    id: id||uid(), company, position,
+    type: document.getElementById('j-type').value,
+    status: document.getElementById('j-status').value,
+    salary: document.getElementById('j-salary').value,
+    deadline: document.getElementById('j-deadline').value,
+    welfare: document.getElementById('j-welfare').value,
+    desc: document.getElementById('j-desc').value,
+    memo: document.getElementById('j-memo').value,
+    date: today(), updatedAt: new Date().toISOString()
+  };
+  if(!data.jobs) data.jobs=[];
+  if(id){ const idx=data.jobs.findIndex(j=>j.id===id); if(idx!==-1) data.jobs[idx]=obj; }
+  else { data.jobs.unshift(obj); }
+  save(); closeModal('job-modal'); clearJobForm(); renderJobs(); renderJobSummary();
+}
+
+function clearJobForm(){
+  ['j-company','j-position','j-salary','j-deadline','j-welfare','j-desc','j-memo','j-edit-id'].forEach(i=>{ document.getElementById(i).value=''; });
+  document.getElementById('j-type').value='정규직';
+  document.getElementById('j-status').value='지원예정';
+  document.getElementById('job-modal-title').textContent='채용공고 추가';
+}
+
+function editJob(id){
+  const j=(data.jobs||[]).find(x=>x.id===id); if(!j) return;
+  document.getElementById('job-modal-title').textContent='채용공고 수정';
+  document.getElementById('j-edit-id').value=j.id;
+  document.getElementById('j-company').value=j.company||'';
+  document.getElementById('j-position').value=j.position||'';
+  document.getElementById('j-type').value=j.type||'정규직';
+  document.getElementById('j-status').value=j.status||'지원예정';
+  document.getElementById('j-salary').value=j.salary||'';
+  document.getElementById('j-deadline').value=j.deadline||'';
+  document.getElementById('j-welfare').value=j.welfare||'';
+  document.getElementById('j-desc').value=j.desc||'';
+  document.getElementById('j-memo').value=j.memo||'';
+  openModal('job-modal');
+}
+
+function deleteJob(id){
+  showDelModal('이 공고를 삭제할까요?','삭제하면 복구할 수 없습니다.',()=>{
+    data.jobs=(data.jobs||[]).filter(j=>j.id!==id);
+    save(); renderJobs(); renderJobSummary();
+  });
+}
+
+function openJobDetail(id){
+  const j=(data.jobs||[]).find(x=>x.id===id); if(!j) return;
+  const dday = j.deadline ? Math.ceil((new Date(j.deadline)-new Date())/(1000*60*60*24)) : null;
+  const ddayHtml = dday!==null ? `<span style="font-size:12px;font-weight:700;color:${dday<=7?'var(--red)':'var(--gray-500)'}">${dday<=0?'마감':'D-'+dday}</span>` : '';
+  document.getElementById('job-detail-content').innerHTML = `
+    <div style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+        <span style="font-size:18px;font-weight:700;color:var(--gray-900)">${j.company}</span>
+        <span class="job-status-badge js-${j.status}">${j.status}</span>
+        ${ddayHtml}
+      </div>
+      <div style="font-size:14px;color:var(--gray-600)">${j.position} · ${j.type}</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px">
+      <div style="background:var(--gray-50);border-radius:8px;padding:12px">
+        <div style="font-size:11px;color:var(--gray-500);margin-bottom:4px">연봉</div>
+        <div style="font-size:15px;font-weight:700;color:var(--blue)">${j.salary?Number(j.salary).toLocaleString()+'만원':'-'}</div>
+      </div>
+      <div style="background:var(--gray-50);border-radius:8px;padding:12px">
+        <div style="font-size:11px;color:var(--gray-500);margin-bottom:4px">마감일</div>
+        <div style="font-size:14px;font-weight:700;color:var(--gray-900)">${j.deadline||'-'}</div>
+      </div>
+    </div>
+    ${j.welfare?`<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--gray-700);margin-bottom:6px">복지조건</div><div style="font-size:13px;color:var(--gray-600)">${j.welfare}</div></div>`:''}
+    ${j.desc?`<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--gray-700);margin-bottom:6px">채용공고 내용</div><div style="font-size:13px;color:var(--gray-600);line-height:1.7;white-space:pre-wrap;background:var(--gray-50);padding:12px;border-radius:8px;max-height:300px;overflow-y:auto">${j.desc}</div></div>`:''}
+    ${j.memo?`<div style="margin-bottom:14px"><div style="font-size:12px;font-weight:700;color:var(--gray-700);margin-bottom:6px">메모</div><div style="font-size:13px;color:var(--gray-600);line-height:1.6;white-space:pre-wrap">${j.memo}</div></div>`:''}
+    <div style="display:flex;gap:8px;margin-top:16px">
+      <button class="btn-primary" style="flex:1" onclick="closeModal('job-detail-modal');editJob('${j.id}')">✏️ 수정</button>
+      <button class="btn-danger" onclick="closeModal('job-detail-modal');deleteJob('${j.id}')" style="padding:12px 16px;border-radius:8px;font-size:13px">🗑 삭제</button>
+    </div>`;
+  openModal('job-detail-modal');
+}
+
+function renderJobSummary(){
+  const jobs = data.jobs||[];
+  const sc = document.getElementById('job-summary'); if(!sc) return;
+  const total = jobs.length;
+  const applied = jobs.filter(j=>['지원완료','서류통과','면접','최종합격'].includes(j.status)).length;
+  const passed = jobs.filter(j=>['서류통과','면접','최종합격'].includes(j.status)).length;
+  const urgent = jobs.filter(j=>{ if(!j.deadline) return false; const d=Math.ceil((new Date(j.deadline)-new Date())/(1000*60*60*24)); return d>=0&&d<=7; }).length;
+  sc.innerHTML=`
+    <div class="summary-card blue"><div class="s-label">등록 공고</div><div class="s-value">${total}건</div></div>
+    <div class="summary-card"><div class="s-label">지원 완료</div><div class="s-value">${applied}건</div></div>
+    <div class="summary-card"><div class="s-label">서류/면접 통과</div><div class="s-value" style="color:var(--green)">${passed}건</div></div>
+    <div class="summary-card"><div class="s-label">마감 임박 (7일)</div><div class="s-value" style="color:var(--red)">${urgent}건</div></div>`;
+}
+
+function renderJobs(){
+  if(!document.getElementById('job-tbody')) return;
+  const jobs = data.jobs||[];
+  const search = (document.getElementById('job-search')||{}).value||'';
+  const searchType = (document.getElementById('job-search-type')||{}).value||'company';
+  const statusFilter = (document.getElementById('job-status-filter')||{}).value||'전체';
+  const sort = (document.getElementById('job-sort')||{}).value||'recent';
+
+  let filtered = jobs.filter(j=>{
+    const matchStatus = statusFilter==='전체'||j.status===statusFilter;
+    const target = searchType==='company'?j.company:searchType==='position'?j.position:j.type;
+    const matchSearch = !search||(target||'').includes(search);
+    return matchStatus&&matchSearch;
+  });
+
+  filtered=[...filtered].sort((a,b)=>{
+    if(sort==='deadline'){
+      if(!a.deadline) return 1; if(!b.deadline) return -1;
+      return new Date(a.deadline)-new Date(b.deadline);
+    }
+    if(sort==='salary') return (Number(b.salary)||0)-(Number(a.salary)||0);
+    return new Date(b.updatedAt||0)-new Date(a.updatedAt||0);
+  });
+
+  const tbody = document.getElementById('job-tbody');
+  if(filtered.length===0){
+    tbody.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--gray-400)">채용공고를 추가해보세요</td></tr>`;
+    return;
+  }
+  const today2 = new Date();
+  tbody.innerHTML=filtered.map(j=>{
+    const dday = j.deadline ? Math.ceil((new Date(j.deadline)-today2)/(1000*60*60*24)) : null;
+    const ddayStr = dday!==null ? (dday<0?'마감':dday===0?'오늘':'D-'+dday) : '-';
+    const urgent = dday!==null&&dday>=0&&dday<=7;
+    return `<tr>
+      <td><span style="cursor:pointer;color:var(--blue);font-weight:700;text-decoration:underline" onclick="openJobDetail('${j.id}')">${j.company}</span></td>
+      <td style="font-size:13px;color:var(--gray-700)">${j.position}</td>
+      <td><span style="font-size:11px;background:var(--gray-100);padding:2px 7px;border-radius:20px;color:var(--gray-600)">${j.type}</span></td>
+      <td style="font-weight:700;color:var(--blue);white-space:nowrap">${j.salary?Number(j.salary).toLocaleString()+'만':'-'}</td>
+      <td style="font-size:12px;color:var(--gray-500);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${j.welfare||''}">${j.welfare||'-'}</td>
+      <td><span class="job-status-badge js-${j.status}">${j.status}</span></td>
+      <td class="${urgent?'job-deadline-urgent':''}" style="white-space:nowrap;font-size:12px">${j.deadline||'-'}<br><span style="font-size:10px">${ddayStr}</span></td>
+      <td style="font-size:12px;color:var(--gray-500);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${j.memo||''}">${j.memo||'-'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn-ghost" style="padding:3px 6px;font-size:11px" onclick="editJob('${j.id}')">✏️</button>
+        <button class="btn-danger" style="padding:3px 6px;font-size:11px" onclick="deleteJob('${j.id}')">🗑</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAll(){ renderDashboard(); renderProperties(); renderAssets(); renderNotes(); renderJobs(); renderJobSummary(); }
 
 // ─── INIT ──────────────────────────────────────────────────────
 load();
