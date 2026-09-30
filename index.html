@@ -296,6 +296,12 @@
   .js-불합격 { background:#FFF0F1; color:#F04452; }
   .job-deadline-urgent { color:#F04452; font-weight:700; }
 
+  .property-item.dragging { opacity:0.4; border:2px dashed var(--blue); }
+  .property-item.drag-over { border-color:var(--blue); background:var(--blue-light); transform:scale(1.01); }
+  .drag-handle { cursor:grab; color:var(--gray-300); font-size:18px; padding:4px 6px; border-radius:4px; flex-shrink:0; }
+  .drag-handle:hover { color:var(--gray-500); background:var(--gray-100); }
+  .drag-handle:active { cursor:grabbing; }
+
   /* DELETE CONFIRM MODAL */
   .del-modal-overlay { display:none; position:fixed; inset:0; background:rgba(25,31,40,0.5); z-index:300; align-items:center; justify-content:center; }
   .del-modal-overlay.open { display:flex; }
@@ -466,6 +472,7 @@
         <option value="modified">최근 수정순</option>
         <option value="price_asc">매입가 낮은순</option>
         <option value="price_desc">매입가 높은순</option>
+        <option value="manual">✋ 직접 정렬</option>
       </select>
     </div>
     <div id="property-list"></div>
@@ -1846,15 +1853,17 @@ function renderProperties(){
     return mt&&ms;
   });
   // 정렬
-  filtered=[...filtered].sort((a,b)=>{
-    if(sort==='price_asc')  return (Number(a.buyPrice)||0)-(Number(b.buyPrice)||0);
-    if(sort==='price_desc') return (Number(b.buyPrice)||0)-(Number(a.buyPrice)||0);
-    if(sort==='modified')   return new Date(b.updatedAt||0) - new Date(a.updatedAt||0);
-    // recent: 등록일 최신순 (createdAt 없으면 updatedAt fallback)
-    return new Date(b.createdAt||b.updatedAt||0) - new Date(a.createdAt||a.updatedAt||0);
-  });
+  if(sort !== 'manual'){
+    filtered=[...filtered].sort((a,b)=>{
+      if(sort==='price_asc')  return (Number(a.buyPrice)||0)-(Number(b.buyPrice)||0);
+      if(sort==='price_desc') return (Number(b.buyPrice)||0)-(Number(a.buyPrice)||0);
+      if(sort==='modified')   return new Date(b.updatedAt||0) - new Date(a.updatedAt||0);
+      return new Date(b.createdAt||b.updatedAt||0) - new Date(a.createdAt||a.updatedAt||0);
+    });
+  }
+  const isManual = sort === 'manual';
   const container=document.getElementById('property-list'); if(!container) return;
-  const pc=document.getElementById('prop-count'); if(pc) pc.textContent=`총 ${filtered.length}건`;
+  const pc=document.getElementById('prop-count'); if(pc) pc.textContent=`총 ${filtered.length}건${isManual?' · 드래그로 순서 변경':''}`;
   if(filtered.length===0){
     container.innerHTML=`<div class="empty-state"><div class="empty-icon">🏠</div><div class="empty-text">매물을 추가해보세요</div></div>`;
     return;
@@ -1867,9 +1876,12 @@ function renderProperties(){
     const cr=p.criteria||{};
     const criteriaHtml=Object.entries({subway:'역세권',infra:'인프라',school:'학군',brand:'브랜드',newbuild:'신축',large:'대단지'})
       .filter(([k])=>cr[k]).map(([,l])=>`<span style="font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;background:var(--blue-light);color:var(--blue)">${l}</span>`).join('');
+    const dragAttr = isManual ? `draggable="true" data-id="${p.id}"` : '';
+    const dragHandle = isManual ? `<span class="drag-handle" title="드래그로 순서 변경">⠿</span>` : '';
     return `
-    <div class="property-item">
+    <div class="property-item" ${dragAttr}>
       <div class="prop-actions">
+        ${dragHandle}
         <button class="btn-ghost" onclick="editProperty('${p.id}')" title="수정">✏️</button>
         <button class="btn-ghost" onclick="duplicateProperty('${p.id}')" title="복제">📋</button>
         <button class="btn-danger" onclick="deleteProperty('${p.id}')" title="삭제">🗑</button>
@@ -1890,17 +1902,37 @@ function renderProperties(){
       </div>
       ${criteriaHtml?`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">${criteriaHtml}</div>`:''}
       <div class="prop-price-row">
-        <div>
-          <div class="prop-price">${fmt(p.buyPrice)}</div>
-        </div>
-        <div style="text-align:right">
-          <div>${yieldHtml}</div>${rentHtml}
-        </div>
+        <div><div class="prop-price">${fmt(p.buyPrice)}</div></div>
+        <div style="text-align:right"><div>${yieldHtml}</div>${rentHtml}</div>
       </div>
       ${p.memo?`<div class="prop-memo">📝 ${p.memo}</div>`:''}
       <div style="margin-top:8px;font-size:11px;color:var(--gray-400)">등록일 ${p.date||'-'}</div>
     </div>`;
   }).join('');
+
+  // 드래그앤드롭 이벤트 (직접 정렬 모드)
+  if(isManual){
+    let dragSrc = null;
+    container.querySelectorAll('.property-item[draggable]').forEach(el=>{
+      el.addEventListener('dragstart', e=>{ dragSrc=el; el.classList.add('dragging'); e.dataTransfer.effectAllowed='move'; });
+      el.addEventListener('dragend', ()=>{ el.classList.remove('dragging'); container.querySelectorAll('.property-item').forEach(i=>i.classList.remove('drag-over')); });
+      el.addEventListener('dragover', e=>{ e.preventDefault(); if(el!==dragSrc){ el.classList.add('drag-over'); } });
+      el.addEventListener('dragleave', ()=>{ el.classList.remove('drag-over'); });
+      el.addEventListener('drop', e=>{
+        e.preventDefault();
+        el.classList.remove('drag-over');
+        if(!dragSrc||dragSrc===el) return;
+        const srcId = dragSrc.dataset.id;
+        const tgtId = el.dataset.id;
+        const srcIdx = data.properties.findIndex(p=>p.id===srcId);
+        const tgtIdx = data.properties.findIndex(p=>p.id===tgtId);
+        if(srcIdx===-1||tgtIdx===-1) return;
+        const [moved] = data.properties.splice(srcIdx,1);
+        data.properties.splice(tgtIdx,0,moved);
+        save(); renderProperties();
+      });
+    });
+  }
 }
 
 // ─── LOAN ──────────────────────────────────────────────────────
