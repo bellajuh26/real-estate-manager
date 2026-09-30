@@ -1091,6 +1091,9 @@ function load(){
     if(!data.loanPlans) data.loanPlans=[];
     if(!data.jobs) data.jobs=[];
   }catch(e){} }
+  // 로컬 변수 동기화
+  loanMemos = data.loanMemos || [];
+  loanPlans = data.loanPlans || [];
   // 기존 데이터 마이그레이션: createdAt/updatedAt 없으면 채우기
   data.properties.forEach((p,i)=>{
     if(!p.createdAt) p.createdAt = new Date(Date.now() - (data.properties.length-i)*1000).toISOString();
@@ -1110,6 +1113,9 @@ async function loadFromCloud(){
       if(!data.notes) data.notes=[];
       if(!data.loanMemos) data.loanMemos=[];
       if(!data.loanPlans) data.loanPlans=[];
+      // 로컬 변수 동기화
+      loanMemos = data.loanMemos;
+      loanPlans = data.loanPlans;
       data.properties.forEach((p,i)=>{
         if(!p.createdAt) p.createdAt = new Date(Date.now() - (data.properties.length-i)*1000).toISOString();
         if(!p.updatedAt) p.updatedAt = p.createdAt;
